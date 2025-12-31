@@ -74,8 +74,6 @@ iframe{
 
 <button id="generateBtn" onclick="handleClick()">Generate Image</button>
 
-<iframe id="result"></iframe>
-
 <div class="note">
 Free images supported by ads
 </div>
@@ -107,7 +105,7 @@ function generateImage(){
   let url = "https://perchance.org/ai-text-to-image-generator?prompt=" 
             + encodeURIComponent(prompt);
 
-  document.getElementById("result").src = url;
+  window.open(url, "_blank");
 
   imageCount++;
 
