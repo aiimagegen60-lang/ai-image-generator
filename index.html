@@ -2,131 +2,322 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Image Generator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  margin:0;
-  background:#0b0b0b;
-  color:#fff;
+/* ---------- BASE ---------- */
+body {
+  margin: 0;
   font-family: Arial, sans-serif;
+  background: #0b0b0b;
+  color: #fff;
 }
-header{
-  padding:14px;
-  text-align:center;
-  font-size:20px;
-  font-weight:bold;
-  background:#161616;
+.hidden { display: none; }
+
+/* ---------- TOP BAR ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #111;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
 }
-.container{
-  padding:15px;
+.topbar button {
+  background: none;
+  border: none;
+  color: #00e676;
+  font-size: 14px;
+  cursor: pointer;
 }
-textarea{
-  width:100%;
-  height:90px;
-  padding:12px;
-  border-radius:10px;
-  border:none;
-  font-size:16px;
+
+/* ---------- CONTAINER ---------- */
+.container {
+  padding: 15px;
 }
-button{
-  width:100%;
-  margin-top:12px;
-  padding:14px;
-  font-size:16px;
-  border:none;
-  border-radius:10px;
-  font-weight:bold;
+
+/* ---------- INPUT ---------- */
+textarea {
+  width: 100%;
+  height: 90px;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  font-size: 16px;
+  outline: none;
 }
-#generateBtn{
-  background:#00e676;
-  color:#000;
+
+/* ---------- BUTTON ---------- */
+button.main-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  font-size: 18px;
+  border: none;
+  border-radius: 14px;
+  background: #00e676;
+  color: #000;
+  font-weight: bold;
 }
-.lock{
-  background:#555 !important;
-  color:#aaa !important;
+
+/* ---------- IMAGE BOX ---------- */
+.image-box {
+  margin-top: 15px;
+  background: #111;
+  border-radius: 14px;
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-iframe{
-  width:100%;
-  height:430px;
-  margin-top:15px;
-  border:none;
-  border-radius:12px;
-  background:#000;
+.hint { color: #555; }
+
+/* ---------- IMAGE OVERLAY ---------- */
+.image-wrapper {
+  position: relative;
+  width: 100%;
 }
-.note{
-  margin-top:10px;
-  font-size:13px;
-  color:#aaa;
-  text-align:center;
+.image-wrapper img {
+  width: 100%;
+  border-radius: 14px;
+}
+.overlay-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.image-wrapper.show .overlay-controls {
+  opacity: 1;
+}
+.overlay-btn {
+  background: rgba(0,0,0,0.65);
+  color: #00e676;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* ---------- ADS ---------- */
+.ad-box {
+  margin: 15px 0;
+  padding: 10px;
+  background: #161616;
+  text-align: center;
+  border-radius: 10px;
+  color: #aaa;
+}
+
+/* ---------- GALLERY ---------- */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.thumb {
+  background: #111;
+  border-radius: 10px;
+  padding: 6px;
+}
+.thumb p {
+  font-size: 12px;
+  margin: 4px 0;
 }
 </style>
 </head>
 
 <body>
 
-<header>AI Image Generator</header>
-
-<div class="container">
-
-<textarea id="prompt" placeholder="Describe your image in detail..."></textarea>
-
-<button id="generateBtn" onclick="handleClick()">Generate Image</button>
-
-<div class="note">
-Free images supported by ads
+<!-- TOP BAR -->
+<div class="topbar">
+  <span>🤖 AI Image Generator</span>
+  <button onclick="showGallery()">Gallery 📁</button>
 </div>
 
-</div>
+<!-- GENERATOR SECTION -->
+<section id="generator" class="container">
+
+  <textarea id="prompt" placeholder="Describe your image…"></textarea>
+
+  <button id="generateBtn" class="main-btn" onclick="generateImage()">
+    ⚡ Generate Image
+  </button>
+
+  <div class="image-box" id="result">
+    <span class="hint">Generated image will appear here</span>
+  </div>
+
+  <!-- MAIN PAGE AD -->
+  <div class="ad-box">
+    Sponsored Ad
+  </div>
+
+</section>
+
+<!-- GALLERY SECTION -->
+<section id="gallery" class="container hidden">
+
+  <button class="main-btn" onclick="showGenerator()">⬅ Back</button>
+
+  <!-- GALLERY TOP AD -->
+  <div class="ad-box">Sponsored Ad</div>
+
+  <div id="galleryGrid" class="gallery-grid"></div>
+
+  <!-- GALLERY BOTTOM AD -->
+  <div class="ad-box">Sponsored Ad</div>
+
+</section>
 
 <script>
-let imageCount = 0;
-let adLock = false;
-
-// 🔴 ADSTERRA LINK YAHAN PASTE KARO
+/* ---------- CONFIG ---------- */
+const WORKER_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
 const AD_LINK = "https://www.effectivegatecpm.com/mfx5d8ns03?key=51b85528597dfa541763957efb4c2f43";
 
-function handleClick(){
-  if(adLock){
-    watchAd();
+/* ---------- SOFT PERSISTENT LOCK ---------- */
+let count = parseInt(localStorage.getItem("ai_count") || "0");
+let locked = localStorage.getItem("ai_locked") === "true";
+
+function updateButton() {
+  document.getElementById("generateBtn").innerText =
+    locked ? "🔒 Watch Ad to Continue" : "⚡ Generate Image";
+}
+updateButton();
+
+/* ---------- CLEANUP (5 DAYS) ---------- */
+function cleanup() {
+  const now = Date.now();
+  const limit = 5 * 24 * 60 * 60 * 1000;
+  let data = JSON.parse(localStorage.getItem("ai_images") || "[]");
+  data = data.filter(i => now - i.time < limit);
+  localStorage.setItem("ai_images", JSON.stringify(data));
+}
+cleanup();
+
+/* ---------- GENERATE IMAGE ---------- */
+async function generateImage() {
+  if (locked) {
+    window.open(AD_LINK, "_blank");
+    setTimeout(() => {
+      count = 0; locked = false;
+      localStorage.setItem("ai_count","0");
+      localStorage.setItem("ai_locked","false");
+      updateButton();
+    }, 6000);
     return;
   }
-  generateImage();
+
+  const prompt = document.getElementById("prompt").value.trim();
+  if (!prompt) return alert("Enter prompt");
+
+  const box = document.getElementById("result");
+  box.innerHTML = "Generating…";
+
+  const res = await fetch(WORKER_URL, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ prompt })
+  });
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+
+  box.innerHTML = `
+    <div class="image-wrapper" onclick="this.classList.toggle('show')">
+      <div class="overlay-controls">
+        <button class="overlay-btn" onclick="downloadImage(event,'${url}')">⬇</button>
+        <button class="overlay-btn" onclick="deleteLatest(event)">🗑</button>
+      </div>
+      <img src="${url}">
+    </div>
+  `;
+
+  let data = JSON.parse(localStorage.getItem("ai_images") || "[]");
+  data.unshift({ url, prompt, time: Date.now() });
+  localStorage.setItem("ai_images", JSON.stringify(data));
+
+  count++;
+  localStorage.setItem("ai_count", count);
+  if (count >= 4) {
+    locked = true;
+    localStorage.setItem("ai_locked","true");
+  }
+  updateButton();
 }
 
-function generateImage(){
-  let prompt = document.getElementById("prompt").value.trim();
-  if(!prompt){
-    alert("Please enter a prompt");
+/* ---------- DOWNLOAD / DELETE ---------- */
+function downloadImage(e, url) {
+  e.stopPropagation();
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ai-image.png";
+  a.click();
+}
+
+function deleteLatest(e) {
+  e.stopPropagation();
+  if (!confirm("Delete this image?")) return;
+  document.getElementById("result").innerHTML =
+    "<span class='hint'>Image deleted</span>";
+  let data = JSON.parse(localStorage.getItem("ai_images") || "[]");
+  data.shift();
+  localStorage.setItem("ai_images", JSON.stringify(data));
+}
+
+/* ---------- GALLERY ---------- */
+function showGallery() {
+  document.getElementById("generator").classList.add("hidden");
+  document.getElementById("gallery").classList.remove("hidden");
+  loadGallery();
+}
+
+function showGenerator() {
+  document.getElementById("gallery").classList.add("hidden");
+  document.getElementById("generator").classList.remove("hidden");
+}
+
+function loadGallery() {
+  const grid = document.getElementById("galleryGrid");
+  grid.innerHTML = "";
+  const data = JSON.parse(localStorage.getItem("ai_images") || "[]");
+  if (data.length === 0) {
+    grid.innerHTML = "<p style='color:#aaa'>No images yet</p>";
     return;
   }
-
-  let url = "https://perchance.org/ai-text-to-image-generator?prompt=" 
-            + encodeURIComponent(prompt);
-
-  window.open(url, "_blank");
-
-  imageCount++;
-
-  if(imageCount >= 4){
-    adLock = true;
-    document.getElementById("generateBtn").innerText = "Watch Ad to Continue";
-    document.getElementById("generateBtn").classList.add("lock");
-  }
+  data.forEach((item, i) => {
+    grid.innerHTML += `
+      <div class="thumb">
+        <div class="image-wrapper" onclick="this.classList.toggle('show')">
+          <div class="overlay-controls">
+            <button class="overlay-btn" onclick="downloadImage(event,'${item.url}')">⬇</button>
+            <button class="overlay-btn" onclick="deleteFromGallery(event,${i})">🗑</button>
+          </div>
+          <img src="${item.url}">
+        </div>
+        <p>${item.prompt}</p>
+      </div>
+    `;
+  });
 }
 
-function watchAd(){
-  window.open(AD_LINK, "_blank");
-
-  setTimeout(() => {
-    imageCount = 0;
-    adLock = false;
-    document.getElementById("generateBtn").innerText = "Generate Image";
-    document.getElementById("generateBtn").classList.remove("lock");
-  }, 6000);
+function deleteFromGallery(e, i) {
+  e.stopPropagation();
+  if (!confirm("Delete this image?")) return;
+  let data = JSON.parse(localStorage.getItem("ai_images") || "[]");
+  data.splice(i,1);
+  localStorage.setItem("ai_images", JSON.stringify(data));
+  loadGallery();
 }
 </script>
 
 </body>
 </html>
+
