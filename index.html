@@ -13,16 +13,22 @@ textarea{width:100%;height:90px;padding:12px;border-radius:10px;border:none;font
 button{width:100%;margin-top:12px;padding:14px;font-size:16px;
 border:none;border-radius:10px;font-weight:bold;background:#00e676;color:#000}
 #status{text-align:center;color:#aaa;margin-top:10px}
+
 .image-box{margin-top:15px;min-height:320px;background:#111;border-radius:12px;
 display:flex;align-items:center;justify-content:center;overflow:hidden}
+
 .image-wrapper{position:relative;width:100%}
 .image-wrapper img{width:100%;border-radius:12px}
+
 .overlay{position:absolute;top:8px;right:8px;display:flex;gap:8px}
 .overlay button{background:rgba(0,0,0,.6);color:#00e676;border:none;
 padding:6px 10px;border-radius:8px}
+
 .hint{color:#777}
+
 .top-actions{display:flex;gap:10px;margin-top:10px}
 .top-actions button{flex:1;background:#222;color:#00e676}
+
 .hidden{display:none}
 
 /* Gallery */
@@ -30,6 +36,7 @@ padding:6px 10px;border-radius:8px}
 .thumb{background:#111;border-radius:10px;padding:6px}
 .thumb img{width:100%;border-radius:8px}
 .thumb p{font-size:12px;color:#aaa}
+.thumb button{width:100%;margin-top:6px}
 
 /* Popup */
 .popup{position:fixed;inset:0;background:rgba(0,0,0,.8);
@@ -45,7 +52,6 @@ width:90%;max-width:320px;text-align:center}
 <header>🤖 AI Image Generator</header>
 
 <div class="container" id="gen">
-
 <textarea id="prompt" placeholder="Describe your image..."></textarea>
 
 <div class="top-actions">
@@ -59,7 +65,6 @@ width:90%;max-width:320px;text-align:center}
 <div class="image-box" id="result">
   <span class="hint">Generated image will appear here</span>
 </div>
-
 </div>
 
 <!-- Gallery -->
@@ -78,38 +83,43 @@ width:90%;max-width:320px;text-align:center}
 </div>
 
 <script>
-/* ---------- CONFIG ---------- */
+/* ================= CONFIG ================= */
 const WORKER_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
 
-/* ---------- SAFETY RESET ---------- */
-if (localStorage.getItem("gen_locked") === "true") {
-  const c = parseInt(localStorage.getItem("gen_count") || "0");
-  if (c < 4) localStorage.setItem("gen_locked", "false");
-}
-
-/* ---------- STATE ---------- */
+/* ================= STATE ================= */
 let count = parseInt(localStorage.getItem("gen_count") || "0");
 let locked = localStorage.getItem("gen_locked") === "true";
+let adTimer = null;
 
-/* ---------- CLEANUP 5 DAYS ---------- */
+/* ================= DOM ================= */
+const adPopup = document.getElementById("adPopup");
+const countdown = document.getElementById("countdown");
+const continueBtn = document.getElementById("continueBtn");
+const status = document.getElementById("status");
+const result = document.getElementById("result");
+const genBtn = document.getElementById("genBtn");
+
+/* ================= SAFETY RESET ================= */
+if (locked && count < 4) {
+  locked = false;
+  localStorage.setItem("gen_locked","false");
+}
+
+/* ================= CLEANUP (5 DAYS) ================= */
 (function(){
-  const now = Date.now(), limit = 5*24*60*60*1000;
-  let d = JSON.parse(localStorage.getItem("images") || "[]");
-  d = d.filter(i => now - i.time < limit);
-  localStorage.setItem("images", JSON.stringify(d));
+  const now = Date.now();
+  const limit = 5 * 24 * 60 * 60 * 1000;
+  let imgs = JSON.parse(localStorage.getItem("images") || "[]");
+  imgs = imgs.filter(i => now - i.time < limit);
+  localStorage.setItem("images", JSON.stringify(imgs));
 })();
 
-/* ---------- GENERATE ---------- */
+/* ================= GENERATE ================= */
 async function generate(){
-  if(locked){ showAd(); return; }
+  if (locked) { showAd(); return; }
 
-  const promptEl = document.getElementById("prompt");
-  const status = document.getElementById("status");
-  const genBtn = document.getElementById("genBtn");
-  const result = document.getElementById("result");
-
-  const p = promptEl.value.trim();
-  if(!p){ alert("Enter prompt"); return; }
+  const p = document.getElementById("prompt").value.trim();
+  if (!p) { alert("Enter prompt"); return; }
 
   status.innerText = "⏳ Generating…";
   genBtn.disabled = true;
@@ -118,13 +128,13 @@ async function generate(){
     const res = await fetch(WORKER_URL,{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ prompt: p })
+      body: JSON.stringify({ prompt:p })
     });
 
-    if(!res.ok) throw new Error("Server busy");
+    if (!res.ok) throw new Error("server");
 
     const type = res.headers.get("content-type") || "";
-    if(!type.startsWith("image/")) throw new Error("Invalid response");
+    if (!type.startsWith("image/")) throw new Error("busy");
 
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -138,13 +148,14 @@ async function generate(){
       <img src="${url}">
     </div>`;
 
-    let d = JSON.parse(localStorage.getItem("images") || "[]");
-    d.unshift({ url, prompt:p, time:Date.now() });
-    localStorage.setItem("images", JSON.stringify(d));
+    let imgs = JSON.parse(localStorage.getItem("images") || "[]");
+    imgs.unshift({ url, prompt:p, time:Date.now() });
+    localStorage.setItem("images", JSON.stringify(imgs));
 
     count++;
     localStorage.setItem("gen_count", count);
-    if(count >= 4){
+
+    if (count >= 4) {
       locked = true;
       localStorage.setItem("gen_locked","true");
     }
@@ -157,20 +168,21 @@ async function generate(){
   genBtn.disabled = false;
 }
 
-/* ---------- DOWNLOAD / DELETE ---------- */
+/* ================= DOWNLOAD / DELETE ================= */
 function download(u){
-  const a=document.createElement("a");
-  a.href=u;a.download="ai-image.jpg";a.click();
+  const a = document.createElement("a");
+  a.href = u;
+  a.download = "ai-image.jpg";
+  a.click();
 }
 function deleteLatest(){
-  if(!confirm("Delete image?"))return;
-  let d=JSON.parse(localStorage.getItem("images")||"[]");
-  d.shift();
-  localStorage.setItem("images",JSON.stringify(d));
-  document.getElementById("result").innerHTML="<span class='hint'>Image deleted</span>";
+  let imgs = JSON.parse(localStorage.getItem("images") || "[]");
+  imgs.shift();
+  localStorage.setItem("images", JSON.stringify(imgs));
+  result.innerHTML = "<span class='hint'>Image deleted</span>";
 }
 
-/* ---------- GALLERY ---------- */
+/* ================= GALLERY ================= */
 function openGallery(){
   gen.classList.add("hidden");
   gallery.classList.remove("hidden");
@@ -182,57 +194,71 @@ function closeGallery(){
 }
 function loadGallery(){
   grid.innerHTML="";
-  let d=JSON.parse(localStorage.getItem("images")||"[]");
-  if(!d.length){ grid.innerHTML="<p class='hint'>No images yet</p>"; return; }
-  d.forEach((i,idx)=>{
+  let imgs = JSON.parse(localStorage.getItem("images") || "[]");
+  if(!imgs.length){
+    grid.innerHTML="<p class='hint'>No images yet</p>";
+    return;
+  }
+  imgs.forEach((i,idx)=>{
     grid.innerHTML+=`
     <div class="thumb">
       <img src="${i.url}">
       <p>${i.prompt}</p>
-      <button onclick="removeFromGallery(${idx})">🗑</button>
+      <button onclick="removeFromGallery(${idx})">🗑 Delete</button>
     </div>`;
   });
 }
 function removeFromGallery(i){
-  let d=JSON.parse(localStorage.getItem("images")||"[]");
-  d.splice(i,1);
-  localStorage.setItem("images",JSON.stringify(d));
+  let imgs = JSON.parse(localStorage.getItem("images") || "[]");
+  imgs.splice(i,1);
+  localStorage.setItem("images", JSON.stringify(imgs));
   loadGallery();
 }
 
-/* ---------- AD POPUP ---------- */
+/* ================= AD POPUP ================= */
 function showAd(){
-  adPopup.classList.remove("hidden");
-  let t=15;
-  countdown.innerText=`Please wait ${t} seconds`;
-  continueBtn.disabled=true;
+  if (adTimer) clearInterval(adTimer);
 
-  const timer=setInterval(()=>{
+  adPopup.classList.remove("hidden");
+  let t = 15;
+  countdown.innerText = `Please wait ${t} seconds`;
+  continueBtn.disabled = true;
+
+  adTimer = setInterval(()=>{
     t--;
-    countdown.innerText=`Please wait ${t} seconds`;
-    if(t<=0){
-      clearInterval(timer);
-      continueBtn.disabled=false;
-      countdown.innerText="You can continue";
+    countdown.innerText = `Please wait ${t} seconds`;
+    if (t <= 0) {
+      clearInterval(adTimer);
+      countdown.innerText = "You can continue";
+      continueBtn.disabled = false;
     }
   },1000);
 }
+
 function closeAd(){
+  if (adTimer) clearInterval(adTimer);
   adPopup.classList.add("hidden");
-  count = 0; locked = false;
+
+  count = 0;
+  locked = false;
   localStorage.setItem("gen_count","0");
   localStorage.setItem("gen_locked","false");
-  document.getElementById("status").innerText="🔓 Unlocked";
+
+  status.innerText = "🔓 Unlocked. Generate again.";
 }
 
-/* ---------- PWA ---------- */
+/* ================= PWA ================= */
 let deferredPrompt;
 window.addEventListener("beforeinstallprompt",e=>{
   e.preventDefault(); deferredPrompt=e;
 });
 function installApp(){
-  if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt=null; }
-  else alert("Install option will appear automatically");
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt=null;
+  } else {
+    alert("Install option will appear automatically");
+  }
 }
 </script>
 
