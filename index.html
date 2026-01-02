@@ -1,12 +1,4 @@
 <!DOCTYPE html>
-// SAFETY RESET (important)
-if (localStorage.getItem("gen_locked") === "true") {
-  const c = parseInt(localStorage.getItem("gen_count") || "0");
-  if (c < 4) {
-    localStorage.setItem("gen_locked", "false");
-  }
-}
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -86,55 +78,58 @@ width:90%;max-width:320px;text-align:center}
 </div>
 
 <script>
-/* CONFIG */
-const WORKER_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev;
+/* ---------- CONFIG ---------- */
+const WORKER_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
 
-/* STATE */
-let count = parseInt(localStorage.getItem("gen_count")||"0");
-let locked = localStorage.getItem("gen_locked")==="true";
+/* ---------- SAFETY RESET ---------- */
+if (localStorage.getItem("gen_locked") === "true") {
+  const c = parseInt(localStorage.getItem("gen_count") || "0");
+  if (c < 4) localStorage.setItem("gen_locked", "false");
+}
 
-/* CLEANUP 5 DAYS */
+/* ---------- STATE ---------- */
+let count = parseInt(localStorage.getItem("gen_count") || "0");
+let locked = localStorage.getItem("gen_locked") === "true";
+
+/* ---------- CLEANUP 5 DAYS ---------- */
 (function(){
-  const now=Date.now(),lim=5*24*60*60*1000;
-  let d=JSON.parse(localStorage.getItem("images")||"[]");
-  d=d.filter(i=>now-i.time<lim);
-  localStorage.setItem("images",JSON.stringify(d));
+  const now = Date.now(), limit = 5*24*60*60*1000;
+  let d = JSON.parse(localStorage.getItem("images") || "[]");
+  d = d.filter(i => now - i.time < limit);
+  localStorage.setItem("images", JSON.stringify(d));
 })();
 
-/* GENERATE */
+/* ---------- GENERATE ---------- */
 async function generate(){
   if(locked){ showAd(); return; }
 
-  const p=prompt.value.trim();
-  if(!p){alert("Enter prompt");return;}
+  const promptEl = document.getElementById("prompt");
+  const status = document.getElementById("status");
+  const genBtn = document.getElementById("genBtn");
+  const result = document.getElementById("result");
 
-  status.innerText="⏳ Generating…";
-  genBtn.disabled=true;
+  const p = promptEl.value.trim();
+  if(!p){ alert("Enter prompt"); return; }
+
+  status.innerText = "⏳ Generating…";
+  genBtn.disabled = true;
 
   try{
-    const res=await fetch(WORKER_URL,{
+    const res = await fetch(WORKER_URL,{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({prompt:p})
+      body:JSON.stringify({ prompt: p })
     });
 
-    if(!res.ok){
-      status.innerText="⚠️ Server busy. Try again.";
-      genBtn.disabled=false;
-      return;
-    }
+    if(!res.ok) throw new Error("Server busy");
 
-    const type=res.headers.get("content-type")||"";
-    if(!type.startsWith("image/")){
-      status.innerText="⚠️ Image service busy.";
-      genBtn.disabled=false;
-      return;
-    }
+    const type = res.headers.get("content-type") || "";
+    if(!type.startsWith("image/")) throw new Error("Invalid response");
 
-    const blob=await res.blob();
-    const url=URL.createObjectURL(blob);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
 
-    result.innerHTML=`
+    result.innerHTML = `
     <div class="image-wrapper">
       <div class="overlay">
         <button onclick="download('${url}')">⬇</button>
@@ -143,27 +138,26 @@ async function generate(){
       <img src="${url}">
     </div>`;
 
-    let d=JSON.parse(localStorage.getItem("images")||"[]");
-    d.unshift({url,prompt:p,time:Date.now()});
-    localStorage.setItem("images",JSON.stringify(d));
+    let d = JSON.parse(localStorage.getItem("images") || "[]");
+    d.unshift({ url, prompt:p, time:Date.now() });
+    localStorage.setItem("images", JSON.stringify(d));
 
     count++;
-    localStorage.setItem("gen_count",count);
-    if(count>=4){
-      locked=true;
+    localStorage.setItem("gen_count", count);
+    if(count >= 4){
+      locked = true;
       localStorage.setItem("gen_locked","true");
     }
 
-    status.innerText="✅ Done";
-    genBtn.disabled=false;
-
+    status.innerText = "✅ Done";
   }catch{
-    status.innerText="❌ Network error";
-    genBtn.disabled=false;
+    status.innerText = "❌ Server busy, try again";
   }
+
+  genBtn.disabled = false;
 }
 
-/* DOWNLOAD / DELETE */
+/* ---------- DOWNLOAD / DELETE ---------- */
 function download(u){
   const a=document.createElement("a");
   a.href=u;a.download="ai-image.jpg";a.click();
@@ -173,10 +167,10 @@ function deleteLatest(){
   let d=JSON.parse(localStorage.getItem("images")||"[]");
   d.shift();
   localStorage.setItem("images",JSON.stringify(d));
-  result.innerHTML="<span class='hint'>Image deleted</span>";
+  document.getElementById("result").innerHTML="<span class='hint'>Image deleted</span>";
 }
 
-/* GALLERY */
+/* ---------- GALLERY ---------- */
 function openGallery(){
   gen.classList.add("hidden");
   gallery.classList.remove("hidden");
@@ -189,10 +183,7 @@ function closeGallery(){
 function loadGallery(){
   grid.innerHTML="";
   let d=JSON.parse(localStorage.getItem("images")||"[]");
-  if(!d.length){
-    grid.innerHTML="<p class='hint'>No images yet</p>";
-    return;
-  }
+  if(!d.length){ grid.innerHTML="<p class='hint'>No images yet</p>"; return; }
   d.forEach((i,idx)=>{
     grid.innerHTML+=`
     <div class="thumb">
@@ -209,7 +200,7 @@ function removeFromGallery(i){
   loadGallery();
 }
 
-/* AD POPUP */
+/* ---------- AD POPUP ---------- */
 function showAd(){
   adPopup.classList.remove("hidden");
   let t=15;
@@ -228,31 +219,20 @@ function showAd(){
 }
 function closeAd(){
   adPopup.classList.add("hidden");
-
-  // reset lock properly
-  count = 0;
-  locked = false;
-
-  localStorage.setItem("gen_count", "0");
-  localStorage.setItem("gen_locked", "false");
-
-  status.innerText = "🔓 Unlocked. Generate again.";
+  count = 0; locked = false;
+  localStorage.setItem("gen_count","0");
+  localStorage.setItem("gen_locked","false");
+  document.getElementById("status").innerText="🔓 Unlocked";
 }
 
-}
-
-/* PWA */
+/* ---------- PWA ---------- */
 let deferredPrompt;
 window.addEventListener("beforeinstallprompt",e=>{
-  e.preventDefault();deferredPrompt=e;
+  e.preventDefault(); deferredPrompt=e;
 });
 function installApp(){
-  if(deferredPrompt){
-    deferredPrompt.prompt();
-    deferredPrompt=null;
-  }else{
-    alert("Install option will appear automatically.");
-  }
+  if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt=null; }
+  else alert("Install option will appear automatically");
 }
 </script>
 
