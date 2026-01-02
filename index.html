@@ -1,3 +1,11 @@
+// SAFETY RESET (important)
+if (localStorage.getItem("gen_locked") === "true") {
+  const c = parseInt(localStorage.getItem("gen_count") || "0");
+  if (c < 4) {
+    localStorage.setItem("gen_locked", "false");
+  }
+}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -220,9 +228,17 @@ function showAd(){
 }
 function closeAd(){
   adPopup.classList.add("hidden");
-  count=0;locked=false;
-  localStorage.setItem("gen_count","0");
-  localStorage.setItem("gen_locked","false");
+
+  // reset lock properly
+  count = 0;
+  locked = false;
+
+  localStorage.setItem("gen_count", "0");
+  localStorage.setItem("gen_locked", "false");
+
+  status.innerText = "🔓 Unlocked. Generate again.";
+}
+
 }
 
 /* PWA */
