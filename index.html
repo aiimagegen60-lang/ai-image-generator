@@ -15,34 +15,29 @@ border:none;border-radius:10px;font-weight:bold;background:#00e676;color:#000}
 #status{text-align:center;color:#aaa;margin-top:10px}
 
 .image-box{margin-top:15px;min-height:320px;background:#111;border-radius:12px;
-display:flex;align-items:center;justify-content:center;overflow:hidden}
+display:flex;align-items:center;justify-content:center}
 
-.image-wrapper{position:relative;width:100%}
-.image-wrapper img{width:100%;border-radius:12px}
+.hidden{display:none !important}
 
-.overlay{position:absolute;top:8px;right:8px;display:flex;gap:8px}
-.overlay button{background:rgba(0,0,0,.6);color:#00e676;border:none;
-padding:6px 10px;border-radius:8px}
-
-.hint{color:#777}
-
-.top-actions{display:flex;gap:10px;margin-top:10px}
-.top-actions button{flex:1;background:#222;color:#00e676}
-
-.hidden{display:none}
-
-/* Gallery */
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.thumb{background:#111;border-radius:10px;padding:6px}
-.thumb img{width:100%;border-radius:8px}
-.thumb p{font-size:12px;color:#aaa}
-.thumb button{width:100%;margin-top:6px}
-
-/* Popup */
-.popup{position:fixed;inset:0;background:rgba(0,0,0,.8);
-display:flex;align-items:center;justify-content:center;z-index:99}
-.popup-box{background:#161616;padding:20px;border-radius:14px;
-width:90%;max-width:320px;text-align:center}
+/* POPUP */
+.popup{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.85);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+.popup.show{display:flex}
+.popup-box{
+  background:#161616;
+  padding:20px;
+  border-radius:14px;
+  width:90%;
+  max-width:320px;
+  text-align:center;
+}
 .popup-box button{margin-top:12px}
 </style>
 </head>
@@ -53,213 +48,126 @@ width:90%;max-width:320px;text-align:center}
 
 <div class="container" id="gen">
 <textarea id="prompt" placeholder="Describe your image..."></textarea>
-
-<div class="top-actions">
-  <button onclick="openGallery()">📁 Gallery</button>
-  <button onclick="installApp()">⬇ Install</button>
-</div>
-
-<button id="genBtn" onclick="generate()">⚡ Generate Image</button>
+<button id="genBtn">⚡ Generate Image</button>
 <div id="status"></div>
-
 <div class="image-box" id="result">
-  <span class="hint">Generated image will appear here</span>
+  <span style="color:#666">Generated image will appear here</span>
 </div>
 </div>
 
-<!-- Gallery -->
-<div class="container hidden" id="gallery">
-<button onclick="closeGallery()">⬅ Back</button>
-<div id="grid" class="grid"></div>
-</div>
-
-<!-- Ad Popup -->
-<div class="popup hidden" id="adPopup">
-<div class="popup-box">
-<h3>🔒 Unlock Generation</h3>
-<p id="countdown">Please wait 15 seconds</p>
-<button id="continueBtn" disabled onclick="closeAd()">Continue</button>
-</div>
+<!-- POPUP -->
+<div class="popup" id="adPopup">
+  <div class="popup-box">
+    <h3>🔒 Unlock Generation</h3>
+    <p id="countdown">Please wait 15 seconds</p>
+    <button id="continueBtn" disabled>Continue</button>
+  </div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-const WORKER_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
+document.addEventListener("DOMContentLoaded", () => {
 
-/* ================= STATE ================= */
-let count = parseInt(localStorage.getItem("gen_count") || "0");
-let locked = localStorage.getItem("gen_locked") === "true";
-let adTimer = null;
+  /* ===== CONFIG ===== */
+  const WORKER_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
 
-/* ================= DOM ================= */
-const adPopup = document.getElementById("adPopup");
-const countdown = document.getElementById("countdown");
-const continueBtn = document.getElementById("continueBtn");
-const status = document.getElementById("status");
-const result = document.getElementById("result");
-const genBtn = document.getElementById("genBtn");
+  /* ===== ELEMENTS ===== */
+  const genBtn = document.getElementById("genBtn");
+  const status = document.getElementById("status");
+  const result = document.getElementById("result");
+  const popup = document.getElementById("adPopup");
+  const countdown = document.getElementById("countdown");
+  const continueBtn = document.getElementById("continueBtn");
+  const promptEl = document.getElementById("prompt");
 
-/* ================= SAFETY RESET ================= */
-if (locked && count < 4) {
-  locked = false;
-  localStorage.setItem("gen_locked","false");
-}
+  /* ===== STATE ===== */
+  let count = parseInt(localStorage.getItem("gen_count") || "0");
+  let locked = localStorage.getItem("gen_locked") === "true";
+  let timer = null;
 
-/* ================= CLEANUP (5 DAYS) ================= */
-(function(){
-  const now = Date.now();
-  const limit = 5 * 24 * 60 * 60 * 1000;
-  let imgs = JSON.parse(localStorage.getItem("images") || "[]");
-  imgs = imgs.filter(i => now - i.time < limit);
-  localStorage.setItem("images", JSON.stringify(imgs));
-})();
+  /* ===== SAFETY RESET ===== */
+  if (locked && count < 4) {
+    locked = false;
+    localStorage.setItem("gen_locked","false");
+  }
 
-/* ================= GENERATE ================= */
-async function generate(){
-  if (locked) { showAd(); return; }
-
-  const p = document.getElementById("prompt").value.trim();
-  if (!p) { alert("Enter prompt"); return; }
-
-  status.innerText = "⏳ Generating…";
-  genBtn.disabled = true;
-
-  try{
-    const res = await fetch(WORKER_URL,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ prompt:p })
-    });
-
-    if (!res.ok) throw new Error("server");
-
-    const type = res.headers.get("content-type") || "";
-    if (!type.startsWith("image/")) throw new Error("busy");
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
-    result.innerHTML = `
-    <div class="image-wrapper">
-      <div class="overlay">
-        <button onclick="download('${url}')">⬇</button>
-        <button onclick="deleteLatest()">🗑</button>
-      </div>
-      <img src="${url}">
-    </div>`;
-
-    let imgs = JSON.parse(localStorage.getItem("images") || "[]");
-    imgs.unshift({ url, prompt:p, time:Date.now() });
-    localStorage.setItem("images", JSON.stringify(imgs));
-
-    count++;
-    localStorage.setItem("gen_count", count);
-
-    if (count >= 4) {
-      locked = true;
-      localStorage.setItem("gen_locked","true");
+  /* ===== GENERATE ===== */
+  genBtn.onclick = async () => {
+    if (locked) {
+      showPopup();
+      return;
     }
 
-    status.innerText = "✅ Done";
-  }catch{
-    status.innerText = "❌ Server busy, try again";
-  }
+    const p = promptEl.value.trim();
+    if (!p) { alert("Enter prompt"); return; }
 
-  genBtn.disabled = false;
-}
+    status.innerText = "⏳ Generating…";
+    genBtn.disabled = true;
 
-/* ================= DOWNLOAD / DELETE ================= */
-function download(u){
-  const a = document.createElement("a");
-  a.href = u;
-  a.download = "ai-image.jpg";
-  a.click();
-}
-function deleteLatest(){
-  let imgs = JSON.parse(localStorage.getItem("images") || "[]");
-  imgs.shift();
-  localStorage.setItem("images", JSON.stringify(imgs));
-  result.innerHTML = "<span class='hint'>Image deleted</span>";
-}
+    try{
+      const res = await fetch(WORKER_URL,{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ prompt:p })
+      });
 
-/* ================= GALLERY ================= */
-function openGallery(){
-  gen.classList.add("hidden");
-  gallery.classList.remove("hidden");
-  loadGallery();
-}
-function closeGallery(){
-  gallery.classList.add("hidden");
-  gen.classList.remove("hidden");
-}
-function loadGallery(){
-  grid.innerHTML="";
-  let imgs = JSON.parse(localStorage.getItem("images") || "[]");
-  if(!imgs.length){
-    grid.innerHTML="<p class='hint'>No images yet</p>";
-    return;
-  }
-  imgs.forEach((i,idx)=>{
-    grid.innerHTML+=`
-    <div class="thumb">
-      <img src="${i.url}">
-      <p>${i.prompt}</p>
-      <button onclick="removeFromGallery(${idx})">🗑 Delete</button>
-    </div>`;
-  });
-}
-function removeFromGallery(i){
-  let imgs = JSON.parse(localStorage.getItem("images") || "[]");
-  imgs.splice(i,1);
-  localStorage.setItem("images", JSON.stringify(imgs));
-  loadGallery();
-}
+      if (!res.ok) throw "server";
 
-/* ================= AD POPUP ================= */
-function showAd(){
-  if (adTimer) clearInterval(adTimer);
+      const type = res.headers.get("content-type") || "";
+      if (!type.startsWith("image/")) throw "busy";
 
-  adPopup.classList.remove("hidden");
-  let t = 15;
-  countdown.innerText = `Please wait ${t} seconds`;
-  continueBtn.disabled = true;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
 
-  adTimer = setInterval(()=>{
-    t--;
+      result.innerHTML = `<img src="${url}" style="width:100%;border-radius:12px">`;
+
+      count++;
+      localStorage.setItem("gen_count", count);
+      if (count >= 4) {
+        locked = true;
+        localStorage.setItem("gen_locked","true");
+      }
+
+      status.innerText = "✅ Done";
+    }catch{
+      status.innerText = "❌ Server busy, try again";
+    }
+
+    genBtn.disabled = false;
+  };
+
+  /* ===== POPUP LOGIC ===== */
+  function showPopup(){
+    popup.classList.add("show");
+    continueBtn.disabled = true;
+
+    let t = 15;
     countdown.innerText = `Please wait ${t} seconds`;
-    if (t <= 0) {
-      clearInterval(adTimer);
-      countdown.innerText = "You can continue";
-      continueBtn.disabled = false;
-    }
-  },1000);
-}
 
-function closeAd(){
-  if (adTimer) clearInterval(adTimer);
-  adPopup.classList.add("hidden");
-
-  count = 0;
-  locked = false;
-  localStorage.setItem("gen_count","0");
-  localStorage.setItem("gen_locked","false");
-
-  status.innerText = "🔓 Unlocked. Generate again.";
-}
-
-/* ================= PWA ================= */
-let deferredPrompt;
-window.addEventListener("beforeinstallprompt",e=>{
-  e.preventDefault(); deferredPrompt=e;
-});
-function installApp(){
-  if(deferredPrompt){
-    deferredPrompt.prompt();
-    deferredPrompt=null;
-  } else {
-    alert("Install option will appear automatically");
+    if (timer) clearInterval(timer);
+    timer = setInterval(()=>{
+      t--;
+      countdown.innerText = `Please wait ${t} seconds`;
+      if (t <= 0) {
+        clearInterval(timer);
+        countdown.innerText = "You can continue";
+        continueBtn.disabled = false;
+      }
+    },1000);
   }
-}
+
+  continueBtn.onclick = () => {
+    if (timer) clearInterval(timer);
+    popup.classList.remove("show");
+
+    count = 0;
+    locked = false;
+    localStorage.setItem("gen_count","0");
+    localStorage.setItem("gen_locked","false");
+
+    status.innerText = "🔓 Unlocked. Generate again.";
+  };
+
+});
 </script>
 
 </body>
