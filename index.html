@@ -2,181 +2,118 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AI Image Generator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Image Generator</title>
 
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:#0b0b0b;color:#fff}
-.hidden{display:none}
-.topbar{position:sticky;top:0;background:#111;padding:12px;display:flex;justify-content:space-between;align-items:center;font-weight:bold}
-.topbar button{background:none;border:none;color:#00e676;font-size:14px}
-.container{padding:15px}
-textarea{width:100%;height:90px;padding:12px;border-radius:12px;border:none;font-size:16px}
-button.main{width:100%;margin-top:12px;padding:14px;font-size:18px;border:none;border-radius:14px;background:#00e676;color:#000;font-weight:bold}
-.image-box{margin-top:15px;background:#111;border-radius:14px;min-height:320px;display:flex;align-items:center;justify-content:center}
-.hint{color:#777;text-align:center}
-.image-wrapper{position:relative;width:100%}
-.image-wrapper img{width:100%;border-radius:14px}
-.overlay{position:absolute;top:8px;right:8px;display:flex;gap:8px;opacity:0;transition:.3s}
-.image-wrapper.show .overlay{opacity:1}
-.overlay button{background:rgba(0,0,0,.65);color:#00e676;border:none;padding:6px 10px;border-radius:8px}
-.ad{margin:15px 0;padding:10px;background:#161616;text-align:center;border-radius:10px;color:#aaa}
-.gallery-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.thumb{background:#111;border-radius:10px;padding:6px}
-.thumb p{font-size:12px;margin:4px 0}
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial, sans-serif;
+}
+header{
+  padding:14px;
+  text-align:center;
+  font-size:20px;
+  font-weight:bold;
+  background:#161616;
+}
+.container{ padding:15px; }
+textarea{
+  width:100%;
+  height:90px;
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  font-size:16px;
+}
+button{
+  width:100%;
+  margin-top:12px;
+  padding:14px;
+  font-size:16px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  background:#00e676;
+  color:#000;
+}
+#imgBox{
+  margin-top:15px;
+  height:420px;
+  border-radius:12px;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+#imgBox img{
+  max-width:100%;
+  max-height:100%;
+}
+.hint{
+  color:#aaa;
+  font-size:14px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="topbar">
-  <span>🤖 AI Image Generator</span>
-  <button onclick="openGallery()">Gallery 📁</button>
+<header>🤖 AI Image Generator</header>
+
+<div class="container">
+
+<textarea id="prompt" placeholder="Describe your image..."></textarea>
+<button onclick="generate()">⚡ Generate Image</button>
+
+<div id="imgBox">
+  <span class="hint">Generated image will appear here</span>
 </div>
 
-<section id="gen" class="container">
-  <textarea id="prompt" placeholder="Describe your image…"></textarea>
-  <button id="genBtn" class="main" onclick="generateImage()">⚡ Generate Image</button>
-
-  <div id="result" class="image-box">
-    <span class="hint">Generated image will appear here</span>
-  </div>
-
-  <div class="ad">Sponsored Ad</div>
-</section>
-
-<section id="gallery" class="container hidden">
-  <button class="main" onclick="closeGallery()">⬅ Back</button>
-  <div class="ad">Sponsored Ad</div>
-  <div id="galleryGrid" class="gallery-grid"></div>
-  <div class="ad">Sponsored Ad</div>
-</section>
+</div>
 
 <script>
+// 🔴 PASTE YOUR WORKER URL HERE
 const WORKER_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
-const AD_LINK = "https://www.effectivegatecpm.com/mfx5d8ns03?key=51b85528597dfa541763957efb4c2f43";
 
-/* ---------- LOCK ---------- */
-let count = parseInt(localStorage.getItem("ai_count")||"0");
-let locked = localStorage.getItem("ai_locked")==="true";
-function updateBtn(){
-  genBtn.innerText = locked ? "🔒 Watch Ad to Continue" : "⚡ Generate Image";
-}
-updateBtn();
+async function generate(){
+  const p = document.getElementById("prompt").value.trim();
+  if(!p){ alert("Enter prompt"); return; }
 
-/* ---------- CLEANUP 5 DAYS ---------- */
-(function(){
-  const now=Date.now(),lim=5*24*60*60*1000;
-  let d=JSON.parse(localStorage.getItem("ai_images")||"[]");
-  d=d.filter(i=>now-i.time<lim);
-  localStorage.setItem("ai_images",JSON.stringify(d));
-})();
+  const box = document.getElementById("imgBox");
+  box.innerHTML = "<span class='hint'>⏳ Generating…</span>";
 
-/* ---------- GENERATE ---------- */
-async function generateImage(){
-  if(locked){
-    window.open(AD_LINK,"_blank");
-    setTimeout(()=>{
-      count=0;locked=false;
-      localStorage.setItem("ai_count","0");
-      localStorage.setItem("ai_locked","false");
-      updateBtn();
-    },6000);
+  async function call(){
+    const r = await fetch(WORKER_URL,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({prompt:p})
+    });
+    const ct = r.headers.get("content-type")||"";
+    if(ct.startsWith("image/")) return r;
+    return null;
+  }
+
+  let res = await call();
+
+  // 🔁 Auto retry if HF busy
+  if(!res){
+    box.innerHTML="<span class='hint'>🔥 Warming up model…</span>";
+    await new Promise(r=>setTimeout(r,3000));
+    res = await call();
+  }
+
+  if(!res){
+    box.innerHTML="<span class='hint'>❌ Server busy. Try again.</span>";
     return;
   }
 
-  const p=prompt.value.trim();
-  if(!p) return alert("Enter prompt");
-
-  genBtn.disabled=true;
-  result.innerHTML="<span class='hint'>Generating image… (10–25 sec)</span>";
-
-  const res = await fetch(WORKER_URL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({prompt:p})
-  });
-
-  const type = res.headers.get("content-type")||"";
-  if(!type.startsWith("image/")){
-    result.innerHTML="<span class='hint'>Server busy. Tap Generate again.</span>";
-    genBtn.disabled=false;
-    return;
-  }
-
-  const blob=await res.blob();
-  const url=URL.createObjectURL(blob);
-
-  result.innerHTML=`
-    <div class="image-wrapper" onclick="this.classList.toggle('show')">
-      <div class="overlay">
-        <button onclick="downloadImg(event,'${url}')">⬇</button>
-        <button onclick="deleteLatest(event)">🗑</button>
-      </div>
-      <img src="${url}">
-    </div>`;
-
-  let data=JSON.parse(localStorage.getItem("ai_images")||"[]");
-  data.unshift({url,prompt:p,time:Date.now()});
-  localStorage.setItem("ai_images",JSON.stringify(data));
-
-  count++;localStorage.setItem("ai_count",count);
-  if(count>=4){locked=true;localStorage.setItem("ai_locked","true")}
-  updateBtn();genBtn.disabled=false;
-}
-
-/* ---------- DOWNLOAD / DELETE ---------- */
-function downloadImg(e,u){
-  e.stopPropagation();
-  const a=document.createElement("a");
-  a.href=u;a.download="ai-image.jpg";a.click();
-}
-function deleteLatest(e){
-  e.stopPropagation();
-  if(!confirm("Delete image?"))return;
-  let d=JSON.parse(localStorage.getItem("ai_images")||"[]");
-  d.shift();localStorage.setItem("ai_images",JSON.stringify(d));
-  result.innerHTML="<span class='hint'>Image deleted</span>";
-}
-
-/* ---------- GALLERY ---------- */
-function openGallery(){
-  gen.classList.add("hidden");
-  gallery.classList.remove("hidden");
-  loadGallery();
-}
-function closeGallery(){
-  gallery.classList.add("hidden");
-  gen.classList.remove("hidden");
-}
-function loadGallery(){
-  galleryGrid.innerHTML="";
-  let d=JSON.parse(localStorage.getItem("ai_images")||"[]");
-  if(!d.length){
-    galleryGrid.innerHTML="<p class='hint'>No images yet</p>";
-    return;
-  }
-  d.forEach((i,idx)=>{
-    galleryGrid.innerHTML+=`
-      <div class="thumb">
-        <div class="image-wrapper" onclick="this.classList.toggle('show')">
-          <div class="overlay">
-            <button onclick="downloadImg(event,'${i.url}')">⬇</button>
-            <button onclick="deleteFromGallery(event,${idx})">🗑</button>
-          </div>
-          <img src="${i.url}">
-        </div>
-        <p>${i.prompt}</p>
-      </div>`;
-  });
-}
-function deleteFromGallery(e,i){
-  e.stopPropagation();
-  if(!confirm("Delete image?"))return;
-  let d=JSON.parse(localStorage.getItem("ai_images")||"[]");
-  d.splice(i,1);
-  localStorage.setItem("ai_images",JSON.stringify(d));
-  loadGallery();
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  box.innerHTML = `<img src="${url}">`;
 }
 </script>
 
