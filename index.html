@@ -6,318 +6,179 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-/* ---------- BASE ---------- */
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #0b0b0b;
-  color: #fff;
-}
-.hidden { display: none; }
-
-/* ---------- TOP BAR ---------- */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #111;
-  padding: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
-}
-.topbar button {
-  background: none;
-  border: none;
-  color: #00e676;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-/* ---------- CONTAINER ---------- */
-.container {
-  padding: 15px;
-}
-
-/* ---------- INPUT ---------- */
-textarea {
-  width: 100%;
-  height: 90px;
-  padding: 12px;
-  border-radius: 12px;
-  border: none;
-  font-size: 16px;
-  outline: none;
-}
-
-/* ---------- BUTTON ---------- */
-button.main-btn {
-  width: 100%;
-  margin-top: 12px;
-  padding: 14px;
-  font-size: 18px;
-  border: none;
-  border-radius: 14px;
-  background: #00e676;
-  color: #000;
-  font-weight: bold;
-}
-
-/* ---------- IMAGE BOX ---------- */
-.image-box {
-  margin-top: 15px;
-  background: #111;
-  border-radius: 14px;
-  min-height: 320px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.hint { color: #555; }
-
-/* ---------- IMAGE OVERLAY ---------- */
-.image-wrapper {
-  position: relative;
-  width: 100%;
-}
-.image-wrapper img {
-  width: 100%;
-  border-radius: 14px;
-}
-.overlay-controls {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  gap: 8px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.image-wrapper.show .overlay-controls {
-  opacity: 1;
-}
-.overlay-btn {
-  background: rgba(0,0,0,0.65);
-  color: #00e676;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-/* ---------- ADS ---------- */
-.ad-box {
-  margin: 15px 0;
-  padding: 10px;
-  background: #161616;
-  text-align: center;
-  border-radius: 10px;
-  color: #aaa;
-}
-
-/* ---------- GALLERY ---------- */
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-.thumb {
-  background: #111;
-  border-radius: 10px;
-  padding: 6px;
-}
-.thumb p {
-  font-size: 12px;
-  margin: 4px 0;
-}
+body{margin:0;font-family:Arial,sans-serif;background:#0b0b0b;color:#fff}
+.hidden{display:none}
+.topbar{position:sticky;top:0;background:#111;padding:12px;display:flex;justify-content:space-between;align-items:center;font-weight:bold}
+.topbar button{background:none;border:none;color:#00e676;font-size:14px}
+.container{padding:15px}
+textarea{width:100%;height:90px;padding:12px;border-radius:12px;border:none;font-size:16px}
+button.main{width:100%;margin-top:12px;padding:14px;font-size:18px;border:none;border-radius:14px;background:#00e676;color:#000;font-weight:bold}
+.image-box{margin-top:15px;background:#111;border-radius:14px;min-height:320px;display:flex;align-items:center;justify-content:center}
+.hint{color:#777;text-align:center}
+.image-wrapper{position:relative;width:100%}
+.image-wrapper img{width:100%;border-radius:14px}
+.overlay{position:absolute;top:8px;right:8px;display:flex;gap:8px;opacity:0;transition:.3s}
+.image-wrapper.show .overlay{opacity:1}
+.overlay button{background:rgba(0,0,0,.65);color:#00e676;border:none;padding:6px 10px;border-radius:8px}
+.ad{margin:15px 0;padding:10px;background:#161616;text-align:center;border-radius:10px;color:#aaa}
+.gallery-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.thumb{background:#111;border-radius:10px;padding:6px}
+.thumb p{font-size:12px;margin:4px 0}
 </style>
 </head>
 
 <body>
 
-<!-- TOP BAR -->
 <div class="topbar">
   <span>🤖 AI Image Generator</span>
-  <button onclick="showGallery()">Gallery 📁</button>
+  <button onclick="openGallery()">Gallery 📁</button>
 </div>
 
-<!-- GENERATOR SECTION -->
-<section id="generator" class="container">
-
+<section id="gen" class="container">
   <textarea id="prompt" placeholder="Describe your image…"></textarea>
+  <button id="genBtn" class="main" onclick="generateImage()">⚡ Generate Image</button>
 
-  <button id="generateBtn" class="main-btn" onclick="generateImage()">
-    ⚡ Generate Image
-  </button>
-
-  <div class="image-box" id="result">
+  <div id="result" class="image-box">
     <span class="hint">Generated image will appear here</span>
   </div>
 
-  <!-- MAIN PAGE AD -->
-  <div class="ad-box">
-    Sponsored Ad
-  </div>
-
+  <div class="ad">Sponsored Ad</div>
 </section>
 
-<!-- GALLERY SECTION -->
 <section id="gallery" class="container hidden">
-
-  <button class="main-btn" onclick="showGenerator()">⬅ Back</button>
-
-  <!-- GALLERY TOP AD -->
-  <div class="ad-box">Sponsored Ad</div>
-
+  <button class="main" onclick="closeGallery()">⬅ Back</button>
+  <div class="ad">Sponsored Ad</div>
   <div id="galleryGrid" class="gallery-grid"></div>
-
-  <!-- GALLERY BOTTOM AD -->
-  <div class="ad-box">Sponsored Ad</div>
-
+  <div class="ad">Sponsored Ad</div>
 </section>
 
 <script>
-/* ---------- CONFIG ---------- */
 const WORKER_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
 const AD_LINK = "https://www.effectivegatecpm.com/mfx5d8ns03?key=51b85528597dfa541763957efb4c2f43";
 
-/* ---------- SOFT PERSISTENT LOCK ---------- */
-let count = parseInt(localStorage.getItem("ai_count") || "0");
-let locked = localStorage.getItem("ai_locked") === "true";
-
-function updateButton() {
-  document.getElementById("generateBtn").innerText =
-    locked ? "🔒 Watch Ad to Continue" : "⚡ Generate Image";
+/* ---------- LOCK ---------- */
+let count = parseInt(localStorage.getItem("ai_count")||"0");
+let locked = localStorage.getItem("ai_locked")==="true";
+function updateBtn(){
+  genBtn.innerText = locked ? "🔒 Watch Ad to Continue" : "⚡ Generate Image";
 }
-updateButton();
+updateBtn();
 
-/* ---------- CLEANUP (5 DAYS) ---------- */
-function cleanup() {
-  const now = Date.now();
-  const limit = 5 * 24 * 60 * 60 * 1000;
-  let data = JSON.parse(localStorage.getItem("ai_images") || "[]");
-  data = data.filter(i => now - i.time < limit);
-  localStorage.setItem("ai_images", JSON.stringify(data));
-}
-cleanup();
+/* ---------- CLEANUP 5 DAYS ---------- */
+(function(){
+  const now=Date.now(),lim=5*24*60*60*1000;
+  let d=JSON.parse(localStorage.getItem("ai_images")||"[]");
+  d=d.filter(i=>now-i.time<lim);
+  localStorage.setItem("ai_images",JSON.stringify(d));
+})();
 
-/* ---------- GENERATE IMAGE ---------- */
-async function generateImage() {
-  if (locked) {
-    window.open(AD_LINK, "_blank");
-    setTimeout(() => {
-      count = 0; locked = false;
+/* ---------- GENERATE ---------- */
+async function generateImage(){
+  if(locked){
+    window.open(AD_LINK,"_blank");
+    setTimeout(()=>{
+      count=0;locked=false;
       localStorage.setItem("ai_count","0");
       localStorage.setItem("ai_locked","false");
-      updateButton();
-    }, 6000);
+      updateBtn();
+    },6000);
     return;
   }
 
-  const prompt = document.getElementById("prompt").value.trim();
-  if (!prompt) return alert("Enter prompt");
+  const p=prompt.value.trim();
+  if(!p) return alert("Enter prompt");
 
-  const box = document.getElementById("result");
-  box.innerHTML = "Generating…";
+  genBtn.disabled=true;
+  result.innerHTML="<span class='hint'>Generating image… (10–25 sec)</span>";
 
-  const res = await fetch(WORKER_URL, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ prompt })
+  const res = await fetch(WORKER_URL,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({prompt:p})
   });
 
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
+  const type = res.headers.get("content-type")||"";
+  if(!type.startsWith("image/")){
+    result.innerHTML="<span class='hint'>Server busy. Tap Generate again.</span>";
+    genBtn.disabled=false;
+    return;
+  }
 
-  box.innerHTML = `
+  const blob=await res.blob();
+  const url=URL.createObjectURL(blob);
+
+  result.innerHTML=`
     <div class="image-wrapper" onclick="this.classList.toggle('show')">
-      <div class="overlay-controls">
-        <button class="overlay-btn" onclick="downloadImage(event,'${url}')">⬇</button>
-        <button class="overlay-btn" onclick="deleteLatest(event)">🗑</button>
+      <div class="overlay">
+        <button onclick="downloadImg(event,'${url}')">⬇</button>
+        <button onclick="deleteLatest(event)">🗑</button>
       </div>
       <img src="${url}">
-    </div>
-  `;
+    </div>`;
 
-  let data = JSON.parse(localStorage.getItem("ai_images") || "[]");
-  data.unshift({ url, prompt, time: Date.now() });
-  localStorage.setItem("ai_images", JSON.stringify(data));
+  let data=JSON.parse(localStorage.getItem("ai_images")||"[]");
+  data.unshift({url,prompt:p,time:Date.now()});
+  localStorage.setItem("ai_images",JSON.stringify(data));
 
-  count++;
-  localStorage.setItem("ai_count", count);
-  if (count >= 4) {
-    locked = true;
-    localStorage.setItem("ai_locked","true");
-  }
-  updateButton();
+  count++;localStorage.setItem("ai_count",count);
+  if(count>=4){locked=true;localStorage.setItem("ai_locked","true")}
+  updateBtn();genBtn.disabled=false;
 }
 
 /* ---------- DOWNLOAD / DELETE ---------- */
-function downloadImage(e, url) {
+function downloadImg(e,u){
   e.stopPropagation();
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "ai-image.png";
-  a.click();
+  const a=document.createElement("a");
+  a.href=u;a.download="ai-image.jpg";a.click();
 }
-
-function deleteLatest(e) {
+function deleteLatest(e){
   e.stopPropagation();
-  if (!confirm("Delete this image?")) return;
-  document.getElementById("result").innerHTML =
-    "<span class='hint'>Image deleted</span>";
-  let data = JSON.parse(localStorage.getItem("ai_images") || "[]");
-  data.shift();
-  localStorage.setItem("ai_images", JSON.stringify(data));
+  if(!confirm("Delete image?"))return;
+  let d=JSON.parse(localStorage.getItem("ai_images")||"[]");
+  d.shift();localStorage.setItem("ai_images",JSON.stringify(d));
+  result.innerHTML="<span class='hint'>Image deleted</span>";
 }
 
 /* ---------- GALLERY ---------- */
-function showGallery() {
-  document.getElementById("generator").classList.add("hidden");
-  document.getElementById("gallery").classList.remove("hidden");
+function openGallery(){
+  gen.classList.add("hidden");
+  gallery.classList.remove("hidden");
   loadGallery();
 }
-
-function showGenerator() {
-  document.getElementById("gallery").classList.add("hidden");
-  document.getElementById("generator").classList.remove("hidden");
+function closeGallery(){
+  gallery.classList.add("hidden");
+  gen.classList.remove("hidden");
 }
-
-function loadGallery() {
-  const grid = document.getElementById("galleryGrid");
-  grid.innerHTML = "";
-  const data = JSON.parse(localStorage.getItem("ai_images") || "[]");
-  if (data.length === 0) {
-    grid.innerHTML = "<p style='color:#aaa'>No images yet</p>";
+function loadGallery(){
+  galleryGrid.innerHTML="";
+  let d=JSON.parse(localStorage.getItem("ai_images")||"[]");
+  if(!d.length){
+    galleryGrid.innerHTML="<p class='hint'>No images yet</p>";
     return;
   }
-  data.forEach((item, i) => {
-    grid.innerHTML += `
+  d.forEach((i,idx)=>{
+    galleryGrid.innerHTML+=`
       <div class="thumb">
         <div class="image-wrapper" onclick="this.classList.toggle('show')">
-          <div class="overlay-controls">
-            <button class="overlay-btn" onclick="downloadImage(event,'${item.url}')">⬇</button>
-            <button class="overlay-btn" onclick="deleteFromGallery(event,${i})">🗑</button>
+          <div class="overlay">
+            <button onclick="downloadImg(event,'${i.url}')">⬇</button>
+            <button onclick="deleteFromGallery(event,${idx})">🗑</button>
           </div>
-          <img src="${item.url}">
+          <img src="${i.url}">
         </div>
-        <p>${item.prompt}</p>
-      </div>
-    `;
+        <p>${i.prompt}</p>
+      </div>`;
   });
 }
-
-function deleteFromGallery(e, i) {
+function deleteFromGallery(e,i){
   e.stopPropagation();
-  if (!confirm("Delete this image?")) return;
-  let data = JSON.parse(localStorage.getItem("ai_images") || "[]");
-  data.splice(i,1);
-  localStorage.setItem("ai_images", JSON.stringify(data));
+  if(!confirm("Delete image?"))return;
+  let d=JSON.parse(localStorage.getItem("ai_images")||"[]");
+  d.splice(i,1);
+  localStorage.setItem("ai_images",JSON.stringify(d));
   loadGallery();
 }
 </script>
 
 </body>
 </html>
-
