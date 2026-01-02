@@ -1,20 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Image Generator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{margin:0;background:#0b0b0b;color:#fff;font-family:Arial}
-header{padding:14px;text-align:center;font-size:20px;background:#161616}
+header{padding:14px;text-align:center;font-size:20px;background:#161616;position:sticky;top:0}
 .container{padding:15px}
-textarea{width:100%;height:90px;padding:12px;border-radius:10px;border:none}
+textarea{width:100%;height:90px;padding:12px;border-radius:10px;border:none;font-size:16px}
 button{width:100%;margin-top:12px;padding:14px;font-size:16px;
-border:none;border-radius:10px;font-weight:bold;background:#00e676}
-#status{margin-top:10px;color:#aaa;text-align:center}
-#imgBox{margin-top:15px}
-#imgBox img{width:100%;border-radius:12px;display:none}
+border:none;border-radius:10px;font-weight:bold;background:#00e676;color:#000}
+#status{text-align:center;color:#aaa;margin-top:10px}
+.image-box{margin-top:15px;min-height:320px;background:#111;border-radius:12px;
+display:flex;align-items:center;justify-content:center;overflow:hidden}
+.image-wrapper{position:relative;width:100%}
+.image-wrapper img{width:100%;border-radius:12px}
+.overlay{position:absolute;top:8px;right:8px;display:flex;gap:8px}
+.overlay button{background:rgba(0,0,0,.6);color:#00e676;border:none;
+padding:6px 10px;border-radius:8px}
+.hint{color:#777}
+.top-actions{display:flex;gap:10px;margin-top:10px}
+.top-actions button{flex:1;background:#222;color:#00e676}
+.hidden{display:none}
+
+/* Gallery */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.thumb{background:#111;border-radius:10px;padding:6px}
+.thumb img{width:100%;border-radius:8px}
+.thumb p{font-size:12px;color:#aaa}
+
+/* Popup */
+.popup{position:fixed;inset:0;background:rgba(0,0,0,.8);
+display:flex;align-items:center;justify-content:center;z-index:99}
+.popup-box{background:#161616;padding:20px;border-radius:14px;
+width:90%;max-width:320px;text-align:center}
+.popup-box button{margin-top:12px}
 </style>
 </head>
 
@@ -22,68 +44,198 @@ border:none;border-radius:10px;font-weight:bold;background:#00e676}
 
 <header>🤖 AI Image Generator</header>
 
-<div class="container">
-<textarea id="prompt" placeholder="Describe your image..."></textarea>
-<button onclick="generate()">⚡ Generate Image</button>
+<div class="container" id="gen">
 
+<textarea id="prompt" placeholder="Describe your image..."></textarea>
+
+<div class="top-actions">
+  <button onclick="openGallery()">📁 Gallery</button>
+  <button onclick="installApp()">⬇ Install</button>
+</div>
+
+<button id="genBtn" onclick="generate()">⚡ Generate Image</button>
 <div id="status"></div>
 
-<div id="imgBox">
-  <img id="img">
+<div class="image-box" id="result">
+  <span class="hint">Generated image will appear here</span>
+</div>
+
+</div>
+
+<!-- Gallery -->
+<div class="container hidden" id="gallery">
+<button onclick="closeGallery()">⬅ Back</button>
+<div id="grid" class="grid"></div>
+</div>
+
+<!-- Ad Popup -->
+<div class="popup hidden" id="adPopup">
+<div class="popup-box">
+<h3>🔒 Unlock Generation</h3>
+<p id="countdown">Please wait 15 seconds</p>
+<button id="continueBtn" disabled onclick="closeAd()">Continue</button>
 </div>
 </div>
 
 <script>
-const WORKER_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
+/* CONFIG */
+const WORKER_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev;
 
-let retry = 0;
+/* STATE */
+let count = parseInt(localStorage.getItem("gen_count")||"0");
+let locked = localStorage.getItem("gen_locked")==="true";
 
+/* CLEANUP 5 DAYS */
+(function(){
+  const now=Date.now(),lim=5*24*60*60*1000;
+  let d=JSON.parse(localStorage.getItem("images")||"[]");
+  d=d.filter(i=>now-i.time<lim);
+  localStorage.setItem("images",JSON.stringify(d));
+})();
+
+/* GENERATE */
 async function generate(){
-  const prompt = document.getElementById("prompt").value.trim();
-  const status = document.getElementById("status");
-  const img = document.getElementById("img");
+  if(locked){ showAd(); return; }
 
-  if(!prompt){
-    alert("Enter prompt");
-    return;
-  }
+  const p=prompt.value.trim();
+  if(!p){alert("Enter prompt");return;}
 
-  status.innerText = "⏳ Generating image…";
-  img.style.display = "none";
+  status.innerText="⏳ Generating…";
+  genBtn.disabled=true;
 
   try{
-    const res = await fetch(WORKER_URL,{
+    const res=await fetch(WORKER_URL,{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({prompt})
+      body:JSON.stringify({prompt:p})
     });
 
     if(!res.ok){
-      if(retry < 1){
-        retry++;
-        status.innerText = "🔥 Warming up server… retrying";
-        setTimeout(generate,3000);
-        return;
-      }
-      status.innerText = "⚠️ Server busy. Try again.";
-      retry = 0;
+      status.innerText="⚠️ Server busy. Try again.";
+      genBtn.disabled=false;
       return;
     }
 
-    const type = res.headers.get("content-type") || "";
+    const type=res.headers.get("content-type")||"";
     if(!type.startsWith("image/")){
-      status.innerText = "⚠️ Image service busy. Try again.";
+      status.innerText="⚠️ Image service busy.";
+      genBtn.disabled=false;
       return;
     }
 
-    const blob = await res.blob();
-    img.src = URL.createObjectURL(blob);
-    img.style.display = "block";
-    status.innerText = "✅ Done";
-    retry = 0;
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+
+    result.innerHTML=`
+    <div class="image-wrapper">
+      <div class="overlay">
+        <button onclick="download('${url}')">⬇</button>
+        <button onclick="deleteLatest()">🗑</button>
+      </div>
+      <img src="${url}">
+    </div>`;
+
+    let d=JSON.parse(localStorage.getItem("images")||"[]");
+    d.unshift({url,prompt:p,time:Date.now()});
+    localStorage.setItem("images",JSON.stringify(d));
+
+    count++;
+    localStorage.setItem("gen_count",count);
+    if(count>=4){
+      locked=true;
+      localStorage.setItem("gen_locked","true");
+    }
+
+    status.innerText="✅ Done";
+    genBtn.disabled=false;
 
   }catch{
-    status.innerText = "❌ Network error";
+    status.innerText="❌ Network error";
+    genBtn.disabled=false;
+  }
+}
+
+/* DOWNLOAD / DELETE */
+function download(u){
+  const a=document.createElement("a");
+  a.href=u;a.download="ai-image.jpg";a.click();
+}
+function deleteLatest(){
+  if(!confirm("Delete image?"))return;
+  let d=JSON.parse(localStorage.getItem("images")||"[]");
+  d.shift();
+  localStorage.setItem("images",JSON.stringify(d));
+  result.innerHTML="<span class='hint'>Image deleted</span>";
+}
+
+/* GALLERY */
+function openGallery(){
+  gen.classList.add("hidden");
+  gallery.classList.remove("hidden");
+  loadGallery();
+}
+function closeGallery(){
+  gallery.classList.add("hidden");
+  gen.classList.remove("hidden");
+}
+function loadGallery(){
+  grid.innerHTML="";
+  let d=JSON.parse(localStorage.getItem("images")||"[]");
+  if(!d.length){
+    grid.innerHTML="<p class='hint'>No images yet</p>";
+    return;
+  }
+  d.forEach((i,idx)=>{
+    grid.innerHTML+=`
+    <div class="thumb">
+      <img src="${i.url}">
+      <p>${i.prompt}</p>
+      <button onclick="removeFromGallery(${idx})">🗑</button>
+    </div>`;
+  });
+}
+function removeFromGallery(i){
+  let d=JSON.parse(localStorage.getItem("images")||"[]");
+  d.splice(i,1);
+  localStorage.setItem("images",JSON.stringify(d));
+  loadGallery();
+}
+
+/* AD POPUP */
+function showAd(){
+  adPopup.classList.remove("hidden");
+  let t=15;
+  countdown.innerText=`Please wait ${t} seconds`;
+  continueBtn.disabled=true;
+
+  const timer=setInterval(()=>{
+    t--;
+    countdown.innerText=`Please wait ${t} seconds`;
+    if(t<=0){
+      clearInterval(timer);
+      continueBtn.disabled=false;
+      countdown.innerText="You can continue";
+    }
+  },1000);
+}
+function closeAd(){
+  adPopup.classList.add("hidden");
+  count=0;locked=false;
+  localStorage.setItem("gen_count","0");
+  localStorage.setItem("gen_locked","false");
+}
+
+/* PWA */
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();deferredPrompt=e;
+});
+function installApp(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt=null;
+  }else{
+    alert("Install option will appear automatically.");
   }
 }
 </script>
