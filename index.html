@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Image Generator</title>
 
 <style>
@@ -13,18 +13,19 @@ textarea{width:100%;height:90px;padding:12px;border-radius:10px;border:none}
 button{width:100%;margin-top:12px;padding:14px;font-size:16px;
 border:none;border-radius:10px;font-weight:bold;background:#00e676}
 #status{margin-top:10px;color:#aaa;text-align:center}
-#imgBox{margin-top:15px;position:relative}
+#imgBox{margin-top:15px}
 #imgBox img{width:100%;border-radius:12px;display:none}
 </style>
 </head>
 
 <body>
 
-<header>AI Image Generator</header>
+<header>🤖 AI Image Generator</header>
 
 <div class="container">
 <textarea id="prompt" placeholder="Describe your image..."></textarea>
 <button onclick="generate()">⚡ Generate Image</button>
+
 <div id="status"></div>
 
 <div id="imgBox">
@@ -33,15 +34,21 @@ border:none;border-radius:10px;font-weight:bold;background:#00e676}
 </div>
 
 <script>
-const WORKER_URL =
-"https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
+const WORKER_URL = "https://YOUR-WORKER-NAME.workers.dev";
+
+let retry = 0;
 
 async function generate(){
-  const prompt = document.getElementById("prompt").value;
+  const prompt = document.getElementById("prompt").value.trim();
   const status = document.getElementById("status");
   const img = document.getElementById("img");
 
-  status.innerText = "⏳ Generating...";
+  if(!prompt){
+    alert("Enter prompt");
+    return;
+  }
+
+  status.innerText = "⏳ Generating image…";
   img.style.display = "none";
 
   try{
@@ -52,18 +59,31 @@ async function generate(){
     });
 
     if(!res.ok){
-      status.innerText="⚠️ Busy… retrying";
-      setTimeout(generate,3000);
+      if(retry < 1){
+        retry++;
+        status.innerText = "🔥 Warming up server… retrying";
+        setTimeout(generate,3000);
+        return;
+      }
+      status.innerText = "⚠️ Server busy. Try again.";
+      retry = 0;
+      return;
+    }
+
+    const type = res.headers.get("content-type") || "";
+    if(!type.startsWith("image/")){
+      status.innerText = "⚠️ Image service busy. Try again.";
       return;
     }
 
     const blob = await res.blob();
     img.src = URL.createObjectURL(blob);
-    img.style.display="block";
-    status.innerText="✅ Done";
+    img.style.display = "block";
+    status.innerText = "✅ Done";
+    retry = 0;
 
   }catch{
-    status.innerText="❌ Error";
+    status.innerText = "❌ Network error";
   }
 }
 </script>
