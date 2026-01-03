@@ -83,66 +83,6 @@ button.locked{
   width:100%;
   display:block;
 }
-.icon-wrap{
-  position:absolute;
-  top:6px;
-  right:6px;
-  display:flex;
-  gap:6px;
-}
-.icon-btn{
-  width:26px;
-  height:26px;
-  border-radius:8px;
-  background:rgba(0,0,0,0.65);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-}
-.icon-btn svg{
-  width:14px;
-  height:14px;
-  fill:#fff;
-}
-#preview{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.85);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:99;
-}
-.popup{
-  background:#161616;
-  padding:14px;
-  border-radius:16px;
-  width:90%;
-  max-width:360px;
-}
-.popup img{
-  width:100%;
-  border-radius:12px;
-}
-.prompt-box{
-  background:#0f0f0f;
-  border-radius:10px;
-  padding:10px;
-  margin-top:10px;
-  position:relative;
-}
-.copy-btn{
-  position:absolute;
-  top:6px;
-  right:6px;
-  font-size:12px;
-  background:#222;
-  color:#00e676;
-  padding:4px 6px;
-  border-radius:6px;
-  cursor:pointer;
-}
 </style>
 </head>
 
@@ -164,22 +104,14 @@ button.locked{
   <div class="grid" id="grid"></div>
 </div>
 
-<div id="preview">
-  <div class="popup">
-    <img id="previewImg">
-    <div class="prompt-box">
-      <div id="previewPrompt"></div>
-      <div class="copy-btn" onclick="copyPrompt()">COPY</div>
-    </div>
-    <button style="margin-top:10px" onclick="closePreview()">Close</button>
-  </div>
-</div>
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
   /* ================= CONFIG ================= */
-  const API_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
+  const API_URL = "https://ai-image-api.aiimagegen60.workers.dev";
+
+  /* 🔴 PASTE YOUR HF TOKEN HERE */
+  const HF_API_KEY = "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";
 
   /* ================= SESSION ================= */
   function makeSession(){
@@ -216,50 +148,66 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleGenerate(d.coins);
   });
 
-  fetch(API_URL + "/gallery", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ session })
-  })
-  .then(r=>r.json())
-  .then(d=>{
-    images = d.images || [];
-    renderGrid();
-  });
+  /* ================= HUGGING FACE IMAGE ================= */
+  async function generateImageHF(prompt){
+    const res = await fetch(
+      "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + HF_API_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          inputs: prompt,
+          options: { wait_for_model: true }
+        })
+      }
+    );
+
+    if(!res.ok){
+      throw new Error("AI busy");
+    }
+
+    return URL.createObjectURL(await res.blob());
+  }
 
   /* ================= GENERATE ================= */
-  window.generate = function(){
+  window.generate = async function(){
     const prompt = promptEl.value.trim();
     if(!prompt) return;
 
     generateBtn.innerText = "⏳ Generating...";
     generateBtn.disabled = true;
 
-    fetch(API_URL + "/generate", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ session, prompt })
-    })
-    .then(r=>r.json())
-    .then(d=>{
-      if(d.error){
-        generateBtn.innerText = "⚡ Generate Image";
-        toggleGenerate(d.coins || 0);
+    try {
+      // 1️⃣ Coins cut
+      const coinRes = await fetch(API_URL + "/generate", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ session, prompt })
+      });
+
+      const coinData = await coinRes.json();
+      if(coinData.error){
+        alert(coinData.error);
         return;
       }
 
-      coinsEl.innerText = d.coins;
-      toggleGenerate(d.coins);
+      coinsEl.innerText = coinData.coins;
+      toggleGenerate(coinData.coins);
 
-      d.images.forEach(url=>{
-        images.unshift({ url, prompt });
-      });
-
+      // 2️⃣ Real AI image
+      const imgUrl = await generateImageHF(prompt);
+      images.unshift({ url: imgUrl, prompt });
       renderGrid();
-    })
-    .finally(()=>{
+
+    } catch {
+      alert("AI busy. Try again in 30 seconds.");
+    } finally {
       generateBtn.innerText = "⚡ Generate Image";
-    });
+      toggleGenerate(parseInt(coinsEl.innerText));
+    }
   };
 
   /* ================= GRID ================= */
@@ -303,3 +251,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
+
+</body>
+</html>
