@@ -1,341 +1,349 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image Generator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #000;
-            color: #fff;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-        h1 {
-            color: #00ff00;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        textarea {
-            width: 100%;
-            max-width: 400px;
-            height: 100px;
-            background-color: #222;
-            color: #fff;
-            border: 1px solid #00ff00;
-            border-radius: 5px;
-            padding: 10px;
-            resize: none;
-            margin-bottom: 10px;
-        }
-        button {
-            background-color: #00ff00;
-            color: #000;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #00cc00;
-        }
-        button:disabled {
-            background-color: #666;
-            cursor: not-allowed;
-        }
-        #status {
-            margin-top: 10px;
-            font-weight: bold;
-            text-align: center;
-        }
-        .success { color: #00ff00; }
-        .error { color: #ff0000; }
-        #image-container {
-            margin-top: 20px;
-            width: 100%;
-            max-width: 400px;
-            height: 400px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #222;
-            border: 1px solid #00ff00;
-            border-radius: 5px;
-            position: relative;
-        }
-        #image-container img {
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 5px;
-        }
-        #image-container .overlay-buttons {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: flex;
-            gap: 5px;
-        }
-        #image-container .overlay-buttons button {
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-        #gallery {
-            margin-top: 40px;
-            width: 100%;
-            max-width: 400px;
-        }
-        #gallery h2 {
-            color: #00ff00;
-            text-align: center;
-        }
-        .gallery-item {
-            background-color: #222;
-            border: 1px solid #00ff00;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .gallery-item img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 5px;
-        }
-        .gallery-item .details {
-            flex: 1;
-        }
-        .gallery-item .details p {
-            margin: 0;
-            font-size: 12px;
-        }
-        .gallery-item button {
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-        #lock-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        #lock-modal .modal-content {
-            background-color: #222;
-            padding: 20px;
-            border-radius: 5px;
-            text-align: center;
-            border: 1px solid #00ff00;
-        }
-        #lock-modal h3 {
-            color: #00ff00;
-        }
-        #countdown {
-            font-size: 24px;
-            color: #00ff00;
-            margin: 10px 0;
-        }
-        @media (max-width: 600px) {
-            body { padding: 10px; }
-            textarea { max-width: 100%; }
-            #image-container { max-width: 100%; height: 300px; }
-            #gallery { max-width: 100%; }
-        }
-    </style>
+<meta charset="UTF-8">
+<title>AI Image Generator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+/* ===== HEADER ===== */
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 14px;
+  background:#161616;
+}
+.header-right{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  font-size:14px;
+}
+.badge{
+  background:#222;
+  padding:6px 10px;
+  border-radius:18px;
+}
+
+/* ===== MAIN ===== */
+.container{
+  padding:14px;
+  max-width:520px;
+  margin:auto;
+}
+
+textarea{
+  width:100%;
+  height:90px;
+  border:none;
+  border-radius:14px;
+  padding:12px;
+  font-size:16px;
+  outline:none;
+}
+
+button{
+  width:100%;
+  margin-top:12px;
+  padding:14px;
+  border:none;
+  border-radius:14px;
+  font-size:16px;
+  font-weight:bold;
+  background:#00e676;
+  color:#000;
+  cursor:pointer;
+}
+button.locked{
+  background:#555;
+  color:#aaa;
+}
+
+.watch-ads{
+  margin-top:10px;
+  text-align:center;
+  color:#00e676;
+  cursor:pointer;
+  font-size:14px;
+}
+
+/* ===== GRID ===== */
+.grid{
+  margin-top:16px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.card{
+  position:relative;
+  border-radius:14px;
+  overflow:hidden;
+  background:#111;
+}
+.card img{
+  width:100%;
+  display:block;
+}
+
+/* ===== ICON OVERLAY ===== */
+.icon-wrap{
+  position:absolute;
+  top:6px;
+  right:6px;
+  display:flex;
+  gap:6px;
+}
+.icon-btn{
+  width:26px;
+  height:26px;
+  border-radius:8px;
+  background:rgba(0,0,0,0.65);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.icon-btn svg{
+  width:14px;
+  height:14px;
+  fill:#fff;
+}
+
+/* ===== PREVIEW POPUP ===== */
+#preview{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.85);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:99;
+}
+.popup{
+  background:#161616;
+  padding:14px;
+  border-radius:16px;
+  width:90%;
+  max-width:360px;
+}
+.popup img{
+  width:100%;
+  border-radius:12px;
+}
+.prompt-box{
+  background:#0f0f0f;
+  border-radius:10px;
+  padding:10px;
+  margin-top:10px;
+  position:relative;
+}
+.copy-btn{
+  position:absolute;
+  top:6px;
+  right:6px;
+  font-size:12px;
+  background:#222;
+  color:#00e676;
+  padding:4px 6px;
+  border-radius:6px;
+  cursor:pointer;
+}
+.hidden{display:none;}
+</style>
 </head>
+
 <body>
-    <h1>AI Image Generator</h1>
-    <textarea id="prompt" placeholder="Enter your image prompt here..."></textarea>
-    <button id="generate-btn">Generate Image</button>
-    <div id="status"></div>
-    <div id="image-container">
-        <p>Enter a prompt and click Generate to start.</p>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div>🤖 AI Image Generator</div>
+  <div class="header-right">
+    <div class="badge">Coins: <span id="coins">---</span></div>
+    <div>📁 Gallery</div>
+    <div>⬇ Install</div>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<div class="container">
+
+  <textarea id="prompt" placeholder="Describe your image..."></textarea>
+
+  <button id="generateBtn" onclick="generate()">⚡ Generate Image</button>
+
+  <div class="watch-ads" onclick="openAdPopup()">👁️ Watch ads → get coins</div>
+
+  <div class="grid" id="grid"></div>
+
+</div>
+
+<!-- ===== PREVIEW POPUP ===== -->
+<div id="preview">
+  <div class="popup">
+    <img id="previewImg">
+    <div class="prompt-box">
+      <div id="previewPrompt"></div>
+      <div class="copy-btn" onclick="copyPrompt()">COPY</div>
     </div>
-    <div id="gallery">
-        <h2>Gallery</h2>
-        <div id="gallery-list"></div>
-    </div>
-    <div id="lock-modal" style="display: none;">
-        <div class="modal-content">
-            <h3>Unlock Generation</h3>
-            <p>Wait for the countdown to continue generating images.</p>
-            <div id="countdown">15</div>
-            <button id="continue-btn" disabled>Continue</button>
+    <button style="margin-top:10px" onclick="closePreview()">Close</button>
+  </div>
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const API_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
+
+/* ================= SESSION ================= */
+const session =
+  localStorage.getItem("session") ||
+  (() => {
+    const s = crypto.randomUUID();
+    localStorage.setItem("session", s);
+    return s;
+  })();
+
+/* ================= STATE ================= */
+const coinsEl = document.getElementById("coins");
+const grid = document.getElementById("grid");
+const generateBtn = document.getElementById("generateBtn");
+
+let images = [];
+
+/* ================= INIT ================= */
+fetch(API_URL + "/init",:fetch(API_URL + "/gallery", {
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body:JSON.stringify({ session })
+})
+.then(r=>r.json())
+.then(d=>{
+  images = d.images || [];
+  renderGrid();
+});
+ {
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body:JSON.stringify({ session })
+})
+.then(r=>r.json())
+.then(d=>{
+  coinsEl.innerText = d.coins;
+  toggleGenerate(d.coins);
+});
+
+/* ================= GENERATE ================= */
+function generate(){
+  fetch(API_URL + "/generate", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      session,
+      prompt: document.getElementById("prompt").value
+    })
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.error){
+      alert("Coins finished. Watch ad.");
+      return;
+    }
+
+    coinsEl.innerText = d.coins;
+    toggleGenerate(d.coins);
+
+    d.images.forEach(url=>{
+      images.unshift({
+        url,
+        prompt: document.getElementById("prompt").value
+      });
+    });
+
+    renderGrid();
+  });
+}
+
+/* ================= GRID ================= */
+function renderGrid(){
+  grid.innerHTML="";
+  images.forEach((img,i)=>{
+    grid.innerHTML += `
+      <div class="card">
+        <img src="${img.url}" onclick="openPreview(${i})">
+        <div class="icon-wrap">
+          <div class="icon-btn" onclick="download('${img.url}')">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 20h14v-2H5v2zm7-18v10.17l3.59-3.58L17 10l-5 5-5-5 1.41-1.41L11 12.17V2h1z"/>
+            </svg>
+          </div>
+          <div class="icon-btn" onclick="removeImage(${i})">
+            <svg viewBox="0 0 24 24">
+              <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zm3.46-7.12l1.41-1.41L12 11.59l1.12-1.12 1.41 1.41L13.41 13l1.12 1.12-1.41 1.41L12 14.41l-1.12 1.12-1.41-1.41L10.59 13l-1.13-1.12zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/>
+            </svg>
+          </div>
         </div>
-    </div>
+      </div>`;
+  });
+}
 
-    <script>
-        const workerUrl = 'https://fragrant-salad-e7eb.aiimagegen60.workers.dev';
-        const maxGenerations = 4;
-        const lockDuration = 15; // seconds
-        const maxWait = 20000; // 20 seconds
-        const galleryExpiry = 5 * 24 * 60 * 60 * 1000; // 5 days in ms
+/* ================= PREVIEW ================= */
+function openPreview(i){
+  preview.style.display="flex";
+  previewImg.src = images[i].url;
+  previewPrompt.innerText = images[i].prompt;
+}
+function closePreview(){
+  preview.style.display="none";
+}
+function copyPrompt(){
+  navigator.clipboard.writeText(previewPrompt.innerText);
+  alert("Prompt copied");
+}
 
-        let generationCount = parseInt(localStorage.getItem('generationCount')) || 0;
-        let isLocked = localStorage.getItem('isLocked') === 'true';
-        let gallery = JSON.parse(localStorage.getItem('gallery')) || [];
+/* ================= HELPERS ================= */
+function download(url){
+  const a=document.createElement("a");
+  a.href=url;a.download="image.jpg";a.click();
+}
+function removeImage(i){
+  images.splice(i,1);
+  renderGrid();
+}
+function toggleGenerate(c){
+  if(c < 2){
+    generateBtn.disabled = true;
+    generateBtn.classList.add("locked");
+  }else{
+    generateBtn.disabled = false;
+    generateBtn.classList.remove("locked");
+  }
+}
 
-        const promptEl = document.getElementById('prompt');
-        const generateBtn = document.getElementById('generate-btn');
-        const statusEl = document.getElementById('status');
-        const imageContainer = document.getElementById('image-container');
-        const galleryList = document.getElementById('gallery-list');
-        const lockModal = document.getElementById('lock-modal');
-        const countdownEl = document.getElementById('countdown');
-        const continueBtn = document.getElementById('continue-btn');
+/* ================= ADS (backend trigger later) ================= */
+function openAdPopup(){
+  alert("Watching ad... wait 15 sec");
+  setTimeout(()=>{
+    fetch(API_URL + "/watch-ad", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ session })
+    })
+    .then(r=>r.json())
+    .then(d=>{
+      coinsEl.innerText = d.coins;
+      toggleGenerate(d.coins);
+      alert("Coins added!");
+    });
+  },15000);
+}
 
-        // Clean up old gallery items
-        const now = Date.now();
-        gallery = gallery.filter(item => now - item.timestamp < galleryExpiry);
-        localStorage.setItem('gallery', JSON.stringify(gallery));
-
-        // Render gallery
-        function renderGallery() {
-            galleryList.innerHTML = '';
-            gallery.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'gallery-item';
-                div.innerHTML = `
-                    <img src="${item.image}" alt="Generated image">
-                    <div class="details">
-                        <p><strong>Prompt:</strong> ${item.prompt}</p>
-                        <p><small>Generated: ${new Date(item.timestamp).toLocaleString()}</small></p>
-                    </div>
-                    <button onclick="downloadImage('${item.image}', 'image-${index}.png')">Download</button>
-                    <button onclick="deleteImage(${index})">Delete</button>
-                `;
-                galleryList.appendChild(div);
-            });
-        }
-        renderGallery();
-
-        // Download image
-        window.downloadImage = (dataUrl, filename) => {
-            const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = filename;
-            link.click();
-        };
-
-        // Delete image
-        window.deleteImage = (index) => {
-            gallery.splice(index, 1);
-            localStorage.setItem('gallery', JSON.stringify(gallery));
-            renderGallery();
-        };
-
-        // Show lock modal
-        function showLockModal() {
-            lockModal.style.display = 'flex';
-            let timeLeft = lockDuration;
-            countdownEl.textContent = timeLeft;
-            const interval = setInterval(() => {
-                timeLeft--;
-                countdownEl.textContent = timeLeft;
-                if (timeLeft <= 0) {
-                    clearInterval(interval);
-                    continueBtn.disabled = false;
-                }
-            }, 1000);
-            continueBtn.onclick = () => {
-                lockModal.style.display = 'none';
-                generationCount = 0;
-                isLocked = false;
-                localStorage.setItem('generationCount', generationCount);
-                localStorage.setItem('isLocked', isLocked);
-            };
-        }
-
-        // Generate image
-        generateBtn.onclick = async () => {
-            if (isLocked) {
-                showLockModal();
-                return;
-            }
-            if (generationCount >= maxGenerations) {
-                isLocked = true;
-                localStorage.setItem('isLocked', isLocked);
-                showLockModal();
-                return;
-            }
-
-            const prompt = promptEl.value.trim();
-            if (!prompt) {
-                statusEl.textContent = '❌ Please enter a prompt.';
-                statusEl.className = 'error';
-                return;
-            }
-
-            generateBtn.disabled = true;
-            statusEl.textContent = 'Generating...';
-            statusEl.className = '';
-            imageContainer.innerHTML = '<p>Generating image...</p>';
-
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), maxWait);
-
-                const response = await fetch(workerUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt }),
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (!response.ok) throw new Error('Server error');
-
-                const data = await response.json();
-                if (data.error) throw new Error(data.error);
-
-                const imageUrl = data.image;
-                imageContainer.innerHTML = `
-                    <img src="${imageUrl}" alt="Generated image">
-                    <div class="overlay-buttons">
-                        <button onclick="downloadImage('${imageUrl}', 'generated-image.png')">Download</button>
-                    </div>
-                `;
-
-                // Save to gallery
-                gallery.push({ prompt, image: imageUrl, timestamp: Date.now() });
-                localStorage.setItem('gallery', JSON.stringify(gallery));
-                renderGallery();
-
-                statusEl.textContent = '✅ Image generated successfully!';
-                statusEl.className = 'success';
-                generationCount++;
-                localStorage.setItem('generationCount', generationCount);
-
-            } catch (error) {
-                let message = '❌ Generation failed. Try again.';
-                if (error.name === 'AbortError') message = '❌ Timed out. Server busy, try again later.';
-                else if (error.message.includes('busy')) message = '❌ Server busy, try again later.';
-                else if (error.message.includes('warming')) message = '❌ Model warming up (free tier).';
-                statusEl.textContent = message;
-                statusEl.className = 'error';
-                imageContainer.innerHTML = '<p>' + message + '</p>';
-            } finally {
-                generateBtn.disabled = false;
-            }
-        };
-
-        // Check lock on load
-        if (isLocked) showLockModal();
-    </script>
 </body>
 </html>
