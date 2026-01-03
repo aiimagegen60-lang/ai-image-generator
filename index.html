@@ -178,8 +178,6 @@ button.locked{
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-  alert("JS Loaded"); // test – ये दिखना MUST है
-
   /* ================= CONFIG ================= */
   const API_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
 
@@ -202,6 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const grid = document.getElementById("grid");
   const generateBtn = document.getElementById("generateBtn");
   const promptEl = document.getElementById("prompt");
+  const adsBtn = document.querySelector(".watch-ads");
 
   let images = [];
 
@@ -213,7 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
   })
   .then(r=>r.json())
   .then(d=>{
-    console.log("INIT:", d);
     coinsEl.innerText = d.coins;
     toggleGenerate(d.coins);
   });
@@ -225,28 +223,28 @@ document.addEventListener("DOMContentLoaded", () => {
   })
   .then(r=>r.json())
   .then(d=>{
-    console.log("GALLERY:", d);
     images = d.images || [];
     renderGrid();
   });
 
   /* ================= GENERATE ================= */
   window.generate = function(){
-    alert("Generate clicked");
+    const prompt = promptEl.value.trim();
+    if(!prompt) return;
+
+    generateBtn.innerText = "⏳ Generating...";
+    generateBtn.disabled = true;
 
     fetch(API_URL + "/generate", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({
-        session,
-        prompt: promptEl.value || "test image"
-      })
+      body:JSON.stringify({ session, prompt })
     })
     .then(r=>r.json())
     .then(d=>{
-      console.log("GENERATE:", d);
       if(d.error){
-        alert(d.error);
+        generateBtn.innerText = "⚡ Generate Image";
+        toggleGenerate(d.coins || 0);
         return;
       }
 
@@ -254,20 +252,23 @@ document.addEventListener("DOMContentLoaded", () => {
       toggleGenerate(d.coins);
 
       d.images.forEach(url=>{
-        images.unshift({ url, prompt: promptEl.value });
+        images.unshift({ url, prompt });
       });
 
       renderGrid();
+    })
+    .finally(()=>{
+      generateBtn.innerText = "⚡ Generate Image";
     });
   };
 
   /* ================= GRID ================= */
   function renderGrid(){
     grid.innerHTML = "";
-    images.forEach((img,i)=>{
+    images.forEach(img=>{
       grid.innerHTML += `
         <div class="card">
-          <img src="${img.url}">
+          <img src="${img.url}" loading="lazy">
         </div>`;
     });
   }
@@ -279,7 +280,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ================= ADS ================= */
   window.openAdPopup = function(){
-    alert("Ad started");
+    adsBtn.innerText = "⏳ Watching ad...";
+    adsBtn.style.pointerEvents = "none";
+
     setTimeout(()=>{
       fetch(API_URL + "/watch-ad", {
         method:"POST",
@@ -290,9 +293,12 @@ document.addEventListener("DOMContentLoaded", () => {
       .then(d=>{
         coinsEl.innerText = d.coins;
         toggleGenerate(d.coins);
-        alert("Coins added");
+      })
+      .finally(()=>{
+        adsBtn.innerText = "👁️ Watch ads → get coins";
+        adsBtn.style.pointerEvents = "auto";
       });
-    }, 3000);
+    }, 15000);
   };
 
 });
