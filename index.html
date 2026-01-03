@@ -13,8 +13,6 @@ body{
   color:#fff;
   font-family:Arial,Helvetica,sans-serif;
 }
-
-/* ===== HEADER ===== */
 header{
   display:flex;
   justify-content:space-between;
@@ -33,14 +31,11 @@ header{
   padding:6px 10px;
   border-radius:18px;
 }
-
-/* ===== MAIN ===== */
 .container{
   padding:14px;
   max-width:520px;
   margin:auto;
 }
-
 textarea{
   width:100%;
   height:90px;
@@ -48,9 +43,7 @@ textarea{
   border-radius:14px;
   padding:12px;
   font-size:16px;
-  outline:none;
 }
-
 button{
   width:100%;
   margin-top:12px;
@@ -67,7 +60,6 @@ button.locked{
   background:#555;
   color:#aaa;
 }
-
 .watch-ads{
   margin-top:10px;
   text-align:center;
@@ -75,8 +67,6 @@ button.locked{
   cursor:pointer;
   font-size:14px;
 }
-
-/* ===== GRID ===== */
 .grid{
   margin-top:16px;
   display:grid;
@@ -93,8 +83,6 @@ button.locked{
   width:100%;
   display:block;
 }
-
-/* ===== ICON OVERLAY ===== */
 .icon-wrap{
   position:absolute;
   top:6px;
@@ -117,8 +105,6 @@ button.locked{
   height:14px;
   fill:#fff;
 }
-
-/* ===== PREVIEW POPUP ===== */
 #preview{
   position:fixed;
   inset:0;
@@ -157,13 +143,11 @@ button.locked{
   border-radius:6px;
   cursor:pointer;
 }
-.hidden{display:none;}
 </style>
 </head>
 
 <body>
 
-<!-- ===== HEADER ===== -->
 <header>
   <div>🤖 AI Image Generator</div>
   <div class="header-right">
@@ -173,20 +157,13 @@ button.locked{
   </div>
 </header>
 
-<!-- ===== MAIN ===== -->
 <div class="container">
-
   <textarea id="prompt" placeholder="Describe your image..."></textarea>
-
   <button id="generateBtn" onclick="generate()">⚡ Generate Image</button>
-
   <div class="watch-ads" onclick="openAdPopup()">👁️ Watch ads → get coins</div>
-
   <div class="grid" id="grid"></div>
-
 </div>
 
-<!-- ===== PREVIEW POPUP ===== -->
 <div id="preview">
   <div class="popup">
     <img id="previewImg">
@@ -199,151 +176,124 @@ button.locked{
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-const API_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
+document.addEventListener("DOMContentLoaded", () => {
 
-/* ================= SESSION ================= */
-const session =
-  localStorage.getItem("session") ||
-  (() => {
-    const s = crypto.randomUUID();
-    localStorage.setItem("session", s);
-    return s;
-  })();
+  alert("JS Loaded"); // test – ये दिखना MUST है
 
-/* ================= STATE ================= */
-const coinsEl = document.getElementById("coins");
-const grid = document.getElementById("grid");
-const generateBtn = document.getElementById("generateBtn");
+  /* ================= CONFIG ================= */
+  const API_URL = "https://fragrant-salad-e7eb.aiimagegen60.workers.dev";
 
-let images = [];
+  /* ================= SESSION ================= */
+  function makeSession(){
+    return 'xxxxxxxxyxxx'.replace(/[xy]/g, c => {
+      const r = Math.random()*16|0;
+      return r.toString(16);
+    });
+  }
 
-/* ================= INIT ================= */
-fetch(API_URL + "/init",:fetch(API_URL + "/gallery", {
-  method:"POST",
-  headers:{ "Content-Type":"application/json" },
-  body:JSON.stringify({ session })
-})
-.then(r=>r.json())
-.then(d=>{
-  images = d.images || [];
-  renderGrid();
-});
- {
-  method:"POST",
-  headers:{ "Content-Type":"application/json" },
-  body:JSON.stringify({ session })
-})
-.then(r=>r.json())
-.then(d=>{
-  coinsEl.innerText = d.coins;
-  toggleGenerate(d.coins);
-});
+  let session = localStorage.getItem("session");
+  if(!session){
+    session = makeSession();
+    localStorage.setItem("session", session);
+  }
 
-/* ================= GENERATE ================= */
-function generate(){
-  fetch(API_URL + "/generate", {
+  /* ================= STATE ================= */
+  const coinsEl = document.getElementById("coins");
+  const grid = document.getElementById("grid");
+  const generateBtn = document.getElementById("generateBtn");
+  const promptEl = document.getElementById("prompt");
+
+  let images = [];
+
+  /* ================= INIT ================= */
+  fetch(API_URL + "/init", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({
-      session,
-      prompt: document.getElementById("prompt").value
-    })
+    body:JSON.stringify({ session })
   })
   .then(r=>r.json())
   .then(d=>{
-    if(d.error){
-      alert("Coins finished. Watch ad.");
-      return;
-    }
-
+    console.log("INIT:", d);
     coinsEl.innerText = d.coins;
     toggleGenerate(d.coins);
+  });
 
-    d.images.forEach(url=>{
-      images.unshift({
-        url,
-        prompt: document.getElementById("prompt").value
-      });
-    });
-
+  fetch(API_URL + "/gallery", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ session })
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    console.log("GALLERY:", d);
+    images = d.images || [];
     renderGrid();
   });
-}
 
-/* ================= GRID ================= */
-function renderGrid(){
-  grid.innerHTML="";
-  images.forEach((img,i)=>{
-    grid.innerHTML += `
-      <div class="card">
-        <img src="${img.url}" onclick="openPreview(${i})">
-        <div class="icon-wrap">
-          <div class="icon-btn" onclick="download('${img.url}')">
-            <svg viewBox="0 0 24 24">
-              <path d="M5 20h14v-2H5v2zm7-18v10.17l3.59-3.58L17 10l-5 5-5-5 1.41-1.41L11 12.17V2h1z"/>
-            </svg>
-          </div>
-          <div class="icon-btn" onclick="removeImage(${i})">
-            <svg viewBox="0 0 24 24">
-              <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zm3.46-7.12l1.41-1.41L12 11.59l1.12-1.12 1.41 1.41L13.41 13l1.12 1.12-1.41 1.41L12 14.41l-1.12 1.12-1.41-1.41L10.59 13l-1.13-1.12zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/>
-            </svg>
-          </div>
-        </div>
-      </div>`;
-  });
-}
+  /* ================= GENERATE ================= */
+  window.generate = function(){
+    alert("Generate clicked");
 
-/* ================= PREVIEW ================= */
-function openPreview(i){
-  preview.style.display="flex";
-  previewImg.src = images[i].url;
-  previewPrompt.innerText = images[i].prompt;
-}
-function closePreview(){
-  preview.style.display="none";
-}
-function copyPrompt(){
-  navigator.clipboard.writeText(previewPrompt.innerText);
-  alert("Prompt copied");
-}
-
-/* ================= HELPERS ================= */
-function download(url){
-  const a=document.createElement("a");
-  a.href=url;a.download="image.jpg";a.click();
-}
-function removeImage(i){
-  images.splice(i,1);
-  renderGrid();
-}
-function toggleGenerate(c){
-  if(c < 2){
-    generateBtn.disabled = true;
-    generateBtn.classList.add("locked");
-  }else{
-    generateBtn.disabled = false;
-    generateBtn.classList.remove("locked");
-  }
-}
-
-/* ================= ADS (backend trigger later) ================= */
-function openAdPopup(){
-  alert("Watching ad... wait 15 sec");
-  setTimeout(()=>{
-    fetch(API_URL + "/watch-ad", {
+    fetch(API_URL + "/generate", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ session })
+      body:JSON.stringify({
+        session,
+        prompt: promptEl.value || "test image"
+      })
     })
     .then(r=>r.json())
     .then(d=>{
+      console.log("GENERATE:", d);
+      if(d.error){
+        alert(d.error);
+        return;
+      }
+
       coinsEl.innerText = d.coins;
       toggleGenerate(d.coins);
-      alert("Coins added!");
-    });
-  },15000);
-}
 
-</body>
-</html>
+      d.images.forEach(url=>{
+        images.unshift({ url, prompt: promptEl.value });
+      });
+
+      renderGrid();
+    });
+  };
+
+  /* ================= GRID ================= */
+  function renderGrid(){
+    grid.innerHTML = "";
+    images.forEach((img,i)=>{
+      grid.innerHTML += `
+        <div class="card">
+          <img src="${img.url}">
+        </div>`;
+    });
+  }
+
+  function toggleGenerate(c){
+    generateBtn.disabled = c < 2;
+    generateBtn.classList.toggle("locked", c < 2);
+  }
+
+  /* ================= ADS ================= */
+  window.openAdPopup = function(){
+    alert("Ad started");
+    setTimeout(()=>{
+      fetch(API_URL + "/watch-ad", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ session })
+      })
+      .then(r=>r.json())
+      .then(d=>{
+        coinsEl.innerText = d.coins;
+        toggleGenerate(d.coins);
+        alert("Coins added");
+      });
+    }, 3000);
+  };
+
+});
+</script>
