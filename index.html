@@ -213,7 +213,7 @@ footer{text-align:center;opacity:.5;padding:16px;font-size:12px}
 
 <script>
 /* ================= CONFIG ================= */
-const API_URL = "https://ai-image-api.aiimagegen60.workers.dev"; // 👈 CHANGE THIS
+const API_URL = "https://ai-image-api.aiimagegen60.workers.dev";
 
 /* SESSION */
 let session = localStorage.getItem("session");
@@ -314,7 +314,7 @@ async function generate(){
 /* CARD TEMPLATES */
 function cardImage(url){
   return `
-  <div class="card">
+  <div class="card" data-url="${url}">
     <div class="card-controls">
       <button class="ctrl download" onclick="download(this)">⬇</button>
       <button class="ctrl delete" onclick="removeCard(this)">🗑</button>
@@ -322,9 +322,10 @@ function cardImage(url){
     <img src="${url}">
   </div>`;
 }
+
 function cardVideo(url){
   return `
-  <div class="card">
+  <div class="card" data-url="${url}">
     <div class="card-controls">
       <button class="ctrl download" onclick="download(this)">⬇</button>
       <button class="ctrl delete" onclick="removeCard(this)">🗑</button>
@@ -343,9 +344,24 @@ function download(btn){
 }
 
 /* DELETE */
-function removeCard(btn){
-  if(confirm("Delete this item?")){
-    btn.closest(".card").remove();
+async function removeCard(btn){
+  if(!confirm("Delete this item?")) return;
+
+  const card = btn.closest(".card");
+  const url = card.dataset.url;
+
+  // UI remove (instant)
+  card.remove();
+
+  // Backend sync
+  try{
+    await fetch(API_URL + "/delete",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ session, url })
+    });
+  }catch{
+    console.log("Backend delete failed");
   }
 }
 
