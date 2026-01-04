@@ -213,7 +213,7 @@ footer{text-align:center;opacity:.5;padding:16px;font-size:12px}
 
 <script>
 /* ================= CONFIG ================= */
-const API_URL = "https://YOUR-WORKER-URL.workers.dev"; // 👈 CHANGE THIS
+const API_URL = "https://ai-image-api.aiimagegen60.workers.dev"; // 👈 CHANGE THIS
 
 /* SESSION */
 let session = localStorage.getItem("session");
@@ -229,13 +229,40 @@ async function login(){
   document.getElementById("auth").style.display="none";
   document.getElementById("app").style.display="block";
 
-  const res = await fetch(ai-image-api.aiimagegen60.workers.dev + "/init",{
+  const res = await fetch(API_URL + "/init",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({ session })
   });
   const data = await res.json();
   document.getElementById("coinCount").innerText = data.coins;
+
+  loadGallery(); // ✅ gallery load
+}
+
+/* LOAD GALLERY */
+async function loadGallery(){
+  const gallery = document.getElementById("gallery");
+  gallery.innerHTML = "";
+
+  try{
+    const res = await fetch(API_URL + "/gallery",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ session })
+    });
+    const data = await res.json();
+
+    (data.gallery || []).forEach(item=>{
+      if(item.type === "image"){
+        gallery.innerHTML += cardImage(item.url);
+      }else{
+        gallery.innerHTML += cardVideo(item.url);
+      }
+    });
+  }catch(e){
+    console.log("Gallery load failed");
+  }
 }
 
 /* TAB */
@@ -245,13 +272,10 @@ function switchTab(t,el){
   el.classList.add("active");
 }
 
-/* GENERATE (BACKEND CONNECTED) */
+/* GENERATE */
 async function generate(){
   const prompt = document.getElementById("prompt").value.trim();
   if(!prompt) return alert("Enter prompt");
-
-  const gallery = document.getElementById("gallery");
-  const coinsEl = document.getElementById("coinCount");
 
   try{
     if(currentTab==="image"){
@@ -263,17 +287,10 @@ async function generate(){
       const data = await res.json();
       if(data.error) return alert(data.error);
 
-      coinsEl.innerText = data.coins;
-
+      document.getElementById("coinCount").innerText = data.coins;
       data.images.forEach(url=>{
-        gallery.innerHTML = `
-        <div class="card">
-          <div class="card-controls">
-            <button class="ctrl download" onclick="download(this)">⬇</button>
-            <button class="ctrl delete" onclick="removeCard(this)">🗑</button>
-          </div>
-          <img src="${url}">
-        </div>` + gallery.innerHTML;
+        document.getElementById("gallery").innerHTML =
+          cardImage(url) + document.getElementById("gallery").innerHTML;
       });
 
     }else{
@@ -285,20 +302,35 @@ async function generate(){
       const data = await res.json();
       if(data.error) return alert(data.error);
 
-      coinsEl.innerText = data.coins;
-
-      gallery.innerHTML = `
-      <div class="card">
-        <div class="card-controls">
-          <button class="ctrl download" onclick="download(this)">⬇</button>
-          <button class="ctrl delete" onclick="removeCard(this)">🗑</button>
-        </div>
-        <video src="${data.video}" controls></video>
-      </div>` + gallery.innerHTML;
+      document.getElementById("coinCount").innerText = data.coins;
+      document.getElementById("gallery").innerHTML =
+        cardVideo(data.video) + document.getElementById("gallery").innerHTML;
     }
   }catch{
     alert("Server busy, try again");
   }
+}
+
+/* CARD TEMPLATES */
+function cardImage(url){
+  return `
+  <div class="card">
+    <div class="card-controls">
+      <button class="ctrl download" onclick="download(this)">⬇</button>
+      <button class="ctrl delete" onclick="removeCard(this)">🗑</button>
+    </div>
+    <img src="${url}">
+  </div>`;
+}
+function cardVideo(url){
+  return `
+  <div class="card">
+    <div class="card-controls">
+      <button class="ctrl download" onclick="download(this)">⬇</button>
+      <button class="ctrl delete" onclick="removeCard(this)">🗑</button>
+    </div>
+    <video src="${url}" controls></video>
+  </div>`;
 }
 
 /* DOWNLOAD */
