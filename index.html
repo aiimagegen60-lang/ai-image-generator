@@ -1,372 +1,306 @@
-<!DOCTYPE html>    <html lang="en">    
-<head>    
-<meta charset="UTF-8" />    
-<title>AI Image & Video Studio</title>    
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />    <style>    
-:root{    
-  --bg:#0b0b0f;    
-  --glass:rgba(255,255,255,.08);    
-  --border:rgba(255,255,255,.15);    
-  --neon:#00ffd5;    
-  --purple:#7a5cff;    
-  --danger:#ff4d4d;    
-}    
-*{box-sizing:border-box}    
-body{    
-  margin:0;    
-  font-family:Inter,Arial,Helvetica,sans-serif;    
-  background:radial-gradient(circle at top,#111,#000);    
-  color:#fff;    
-}    
-header{    
-  padding:14px 18px;    
-  display:flex;    
-  justify-content:space-between;    
-  align-items:center;    
-  backdrop-filter:blur(12px);    
-  background:var(--glass);    
-  border-bottom:1px solid var(--border);    
-}    
-.logo{font-weight:700;font-size:18px}    
-.coins{    
-  padding:6px 14px;    
-  border-radius:20px;    
-  background:#111;    
-  border:1px solid var(--border);    
-  color:var(--neon);    
-}    
-#auth{    
-  min-height:100vh;    
-  display:flex;    
-  align-items:center;    
-  justify-content:center;    
-}    
-.auth-card{    
-  width:90%;    
-  max-width:380px;    
-  padding:26px;    
-  border-radius:20px;    
-  background:var(--glass);    
-  border:1px solid var(--border);    
-  text-align:center;    
-}    
-.auth-btn{    
-  width:100%;    
-  padding:14px;    
-  margin-top:12px;    
-  border-radius:14px;    
-  border:none;    
-  cursor:pointer;    
-  font-size:15px;    
-  font-weight:600;    
-}    
-.google{background:#fff;color:#000}    
-.email{background:#222;color:#fff}    
-#app{display:none}    
-.container{    
-  padding:18px;    
-  max-width:900px;    
-  margin:auto;    
-}    
-.tabs{display:flex;gap:10px;margin-bottom:16px}    
-.tab{    
-  flex:1;padding:12px;text-align:center;    
-  border-radius:14px;background:#111;    
-  border:1px solid var(--border);    
-  cursor:pointer;    
-}    
-.tab.active{    
-  background:linear-gradient(135deg,var(--purple),var(--neon));    
-  color:#000;    
-}    
-.panel{    
-  background:var(--glass);    
-  border:1px solid var(--border);    
-  border-radius:20px;    
-  padding:16px;    
-}    
-textarea{    
-  width:100%;height:90px;    
-  background:#0e0e13;color:#fff;    
-  border:1px solid var(--border);    
-  border-radius:14px;    
-  padding:12px;    
-}    
-.generate-btn{    
-  margin-top:12px;width:100%;    
-  padding:14px;border:none;    
-  border-radius:16px;    
-  font-weight:700;cursor:pointer;    
-  background:linear-gradient(135deg,var(--neon),#4dff9c);    
-  color:#000;    
-}    
-.actions{display:flex;gap:10px;margin-top:12px}    
-.action{    
-  flex:1;padding:12px;    
-  border-radius:14px;background:#111;    
-  border:1px solid var(--border);    
-  cursor:pointer;text-align:center;    
-}    
-.gallery{    
-  margin-top:22px;    
-  display:grid;    
-  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));    
-  gap:14px;    
-}    
-.card{    
-  position:relative;    
-  border-radius:16px;    
-  overflow:hidden;    
-  background:#111;    
-}    
-.card img,.card video{width:100%;display:block}    
-.card-controls{    
-  position:absolute;    
-  top:6px;    
-  right:6px;    
-  display:flex;    
-  gap:6px;    
-}    
-.ctrl{    
-  width:30px;height:30px;    
-  border-radius:8px;border:none;    
-  cursor:pointer;font-size:14px;    
-}    
-.download{background:var(--neon);color:#000}    
-.delete{background:var(--danger);color:#fff}    
-#adsModal{    
-  position:fixed;inset:0;    
-  background:rgba(0,0,0,.85);    
-  display:none;align-items:center;justify-content:center;    
-}    
-.ads-box{    
-  width:90%;max-width:360px;    
-  background:#111;border-radius:20px;    
-  padding:20px;text-align:center;    
-}    
-.progress{    
-  height:8px;background:#222;    
-  border-radius:10px;overflow:hidden;margin-top:14px;    
-}    
-.bar{    
-  height:100%;width:0%;    
-  background:linear-gradient(90deg,var(--purple),var(--neon));    
-}    
-footer{text-align:center;opacity:.5;padding:16px;font-size:12px}    
-</style>    </head>    <body>    <div id="auth">    
-  <div class="auth-card">    
-    <h2>Welcome to AI Studio</h2>    
-    <p>Generate Images & Videos using AI</p>    
-    <button class="auth-btn google" onclick="login()">Continue with Google</button>    
-    <button class="auth-btn email" onclick="login()">Continue with Email</button>    
-  </div>    
-</div>    <div id="app">    
-<header>    
-  <div class="logo">⚡ AI Studio</div>    
-  <div style="display:flex;gap:10px">    
-    <div class="coins">🪙 <span id="coinCount">--</span></div>    
-    <div class="coins">🎯 Ads left: <span id="adsLeft">--</span>/5</div>    
-  </div>    
-</header>    <div class="container">      <div class="tabs">    
-    <div class="tab active" onclick="switchTab('image',this)">🖼 Image</div>    
-    <div class="tab" onclick="switchTab('video',this)">🎬 Video</div>    
-  </div>      <div class="panel">    
-    <textarea id="prompt" placeholder="Describe what you want to generate..."></textarea>    
-    <button class="generate-btn" onclick="generate()">Generate</button>    <div class="actions">    
-  <div class="action" id="adsBtn" onclick="openAds()">👁 Watch Ads</div>    
-  <div class="action">💳 Buy Coins</div>    
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AI Image & Video Studio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+:root{
+  --bg:#0b0b0f;
+  --glass:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.15);
+  --neon:#00ffd5;
+  --purple:#7a5cff;
+  --danger:#ff4d4d;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter,Arial,Helvetica,sans-serif;
+  background:radial-gradient(circle at top,#111,#000);
+  color:#fff;
+}
+header{
+  padding:14px 18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  backdrop-filter:blur(12px);
+  background:var(--glass);
+  border-bottom:1px solid var(--border);
+}
+.logo{font-weight:700;font-size:18px}
+.coins{
+  padding:6px 14px;
+  border-radius:20px;
+  background:#111;
+  border:1px solid var(--border);
+  color:var(--neon);
+}
+#auth{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.auth-card{
+  width:90%;
+  max-width:380px;
+  padding:26px;
+  border-radius:20px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  text-align:center;
+}
+.auth-btn{
+  width:100%;
+  padding:14px;
+  margin-top:12px;
+  border-radius:14px;
+  border:none;
+  cursor:pointer;
+  font-size:15px;
+  font-weight:600;
+}
+.google{background:#fff;color:#000}
+.email{background:#222;color:#fff}
+#app{display:none}
+.container{
+  padding:18px;
+  max-width:900px;
+  margin:auto;
+}
+.tabs{display:flex;gap:10px;margin-bottom:16px}
+.tab{
+  flex:1;padding:12px;text-align:center;
+  border-radius:14px;background:#111;
+  border:1px solid var(--border);
+  cursor:pointer;
+}
+.tab.active{
+  background:linear-gradient(135deg,var(--purple),var(--neon));
+  color:#000;
+}
+.panel{
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:16px;
+}
+textarea{
+  width:100%;height:90px;
+  background:#0e0e13;color:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:12px;
+}
+.generate-btn{
+  margin-top:12px;width:100%;
+  padding:14px;border:none;
+  border-radius:16px;
+  font-weight:700;cursor:pointer;
+  background:linear-gradient(135deg,var(--neon),#4dff9c);
+  color:#000;
+}
+.actions{display:flex;gap:10px;margin-top:12px}
+.action{
+  flex:1;padding:12px;
+  border-radius:14px;background:#111;
+  border:1px solid var(--border);
+  cursor:pointer;text-align:center;
+}
+.gallery{
+  margin-top:22px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:14px;
+}
+.card{
+  position:relative;
+  border-radius:16px;
+  overflow:hidden;
+  background:#111;
+}
+.card img,.card video{width:100%;display:block}
+.card-controls{
+  position:absolute;
+  top:6px;
+  right:6px;
+  display:flex;
+  gap:6px;
+}
+.ctrl{
+  width:30px;height:30px;
+  border-radius:8px;border:none;
+  cursor:pointer;font-size:14px;
+}
+.download{background:var(--neon);color:#000}
+#adsModal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.85);
+  display:none;align-items:center;justify-content:center;
+}
+.ads-box{
+  width:90%;max-width:360px;
+  background:#111;border-radius:20px;
+  padding:20px;text-align:center;
+}
+.progress{
+  height:8px;background:#222;
+  border-radius:10px;overflow:hidden;margin-top:14px;
+}
+.bar{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--purple),var(--neon));
+}
+footer{text-align:center;opacity:.5;padding:16px;font-size:12px}
+</style>
+</head>
+
+<body>
+
+<div id="auth">
+  <div class="auth-card">
+    <h2>Welcome to AI Studio</h2>
+    <p>Generate Images & Videos using AI</p>
+    <button class="auth-btn google" onclick="login()">Continue with Google</button>
+    <button class="auth-btn email" onclick="login()">Continue with Email</button>
+  </div>
 </div>
 
-  </div>      <div class="gallery" id="gallery"></div>    
-</div>    <footer>© AI Studio • Private Gallery</footer>    
-</div>    <div id="adsModal">    
-  <div class="ads-box">    
-    <h3>Watching Ads</h3>    
-    <p>1 click = 2 ads = +1 coin<br>Max 5 clicks / day</p>    
-    <div class="progress"><div class="bar" id="bar"></div></div>    
-  </div>    
-</div>    <script>    
-const API_URL = "https://ai-image-api.aiimagegen60.workers.dev";    
-    
-/* SESSION */    
-let session = localStorage.getItem("session");    
-if(!session){    
-  session = crypto.randomUUID();    
-  localStorage.setItem("session", session);    
-}    
-    
-let currentTab = "image";    
-let adsPlayed = 0;    
-    
-/* LOGIN */    
-async function login(){    
-  document.getElementById("auth").style.display="none";    
-  document.getElementById("app").style.display="block";    
-    
-  const res = await fetch(API_URL + "/init",{    
-    method:"POST",    
-    headers:{ "Content-Type":"application/json" },    
-    body:JSON.stringify({ session })    
-  });    
-  const data = await res.json();    
-    
-  document.getElementById("coinCount").innerText = data.coins;    
-  updateAdsUI(data.adsLeft ?? 5);    
-  loadGallery();    
-}    
-    
-/* ADS UI */    
-function updateAdsUI(left){    
-  document.getElementById("adsLeft").innerText = left;    
-  const btn = document.getElementById("adsBtn");    
-    
-  if(left <= 0){    
-    btn.innerText = "⛔ Daily Ads Quota Ended";    
-    btn.style.pointerEvents="none";    
-    btn.style.opacity="0.5";    
-  }else{    
-    btn.innerText = "👁 Watch Ads";    
-    btn.style.pointerEvents="auto";    
-    btn.style.opacity="1";    
-  }    
-}    
-    
-/* ADS FLOW */    
-function openAds(){    
-  adsPlayed = 0;    
-  document.getElementById("adsModal").style.display="flex";    
-  playAd();    
-}    
-    
-function playAd(){    
-  if(adsPlayed >= 2){    
-    rewardAd();    
-    return;    
-  }    
-    
-  adsPlayed++;    
-    
-  const s = document.createElement("script");    
-  s.src = "//www.topcreativeformat.com/https://www.effectivegatecpm.com/mfx5d8ns03?key=51b85528597dfa541763957efb4c2f43/invoke.js";    
-  s.async = true;    
-  document.body.appendChild(s);    
-    
-  setTimeout(playAd, 12000);    
-}    
-    
-function rewardAd(){    
-  document.getElementById("adsModal").style.display="none";    
-    
-  fetch(API_URL + "/watch-ad",{    
-    method:"POST",    
-    headers:{ "Content-Type":"application/json" },    
-    body:JSON.stringify({ session })    
-  })    
-  .then(r=>r.json())    
-  .then(d=>{    
-    if(d.error){    
-      updateAdsUI(0);    
-      alert(d.error);    
-    }else{    
-      document.getElementById("coinCount").innerText = d.coins;    
-      updateAdsUI(d.adsLeft ?? 0);    
-    }    
-  });    
-}    
-</script>    </body>    
-</html>
+<div id="app">
+<header>
+  <div class="logo">⚡ AI Studio</div>
+  <div style="display:flex;gap:10px">
+    <div class="coins">🪙 <span id="coinCount">--</span></div>
+    <div class="coins">🎯 Ads left: <span id="adsLeft">--</span>/5</div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('image',this)">🖼 Image</div>
+    <div class="tab" onclick="switchTab('video',this)">🎬 Video</div>
+  </div>
+
+  <div class="panel">
+    <textarea id="prompt" placeholder="Describe what you want to generate..."></textarea>
+    <button class="generate-btn" onclick="generate()">Generate</button>
+
+    <div class="actions">
+      <div class="action" id="adsBtn" onclick="openAds()">👁 Watch Ads</div>
+      <div class="action">💳 Buy Coins</div>
+    </div>
+  </div>
+
+  <div class="gallery" id="gallery"></div>
+</div>
+
+<footer>© AI Studio • Private Gallery</footer>
+</div>
+
+<div id="adsModal">
+  <div class="ads-box">
+    <h3>Watching Ads</h3>
+    <p>1 click = 2 ads = +1 coin<br>Max 5 clicks / day</p>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+  </div>
+</div>
 
 <script>
-/* ===== REQUIRED FIX FUNCTIONS (NO UI CHANGE) ===== */
+const API_URL = "https://ai-image-api.aiimagegen60.workers.dev";
 
-function switchTab(tab, el){
-  currentTab = tab;
+let session = localStorage.getItem("session");
+if(!session){
+  session = crypto.randomUUID();
+  localStorage.setItem("session", session);
+}
+
+let currentTab="image";
+let adsPlayed=0;
+
+function switchTab(tab,el){
+  currentTab=tab;
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
   el.classList.add("active");
 }
 
-function cardImage(url){
-  return `
-  <div class="card">
-    <img src="${url}" />
-    <div class="card-controls">
-      <button class="ctrl download" onclick="window.open('${url}')">⬇</button>
-    </div>
-  </div>`;
+async function login(){
+  auth.style.display="none";
+  app.style.display="block";
+
+  const r=await fetch(API_URL+"/init",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session})});
+  const d=await r.json();
+  coinCount.innerText=d.coins;
+  updateAdsUI(d.adsLeft??5);
+  loadGallery();
 }
 
-function cardVideo(url){
-  return `
-  <div class="card">
-    <video src="${url}" controls></video>
-    <div class="card-controls">
-      <button class="ctrl download" onclick="window.open('${url}')">⬇</button>
-    </div>
-  </div>`;
+function updateAdsUI(left){
+  adsLeft.innerText=left;
+  if(left<=0){
+    adsBtn.innerText="⛔ Daily Ads Quota Ended";
+    adsBtn.style.pointerEvents="none";
+    adsBtn.style.opacity="0.5";
+  }else{
+    adsBtn.innerText="👁 Watch Ads";
+    adsBtn.style.pointerEvents="auto";
+    adsBtn.style.opacity="1";
+  }
+}
+
+function openAds(){
+  adsPlayed=0;
+  adsModal.style.display="flex";
+  playAd();
+}
+
+function playAd(){
+  if(adsPlayed>=2){ rewardAd(); return; }
+  adsPlayed++;
+  const s=document.createElement("script");
+  s.src="//www.topcreativeformat.com/ <meta name="monetag" content="32dd2ca78e9513bc622e37f5d6cbffa1">
+  s.async=true;
+  document.body.appendChild(s);
+  setTimeout(playAd,12000);
+}
+
+function rewardAd(){
+  adsModal.style.display="none";
+  fetch(API_URL+"/watch-ad",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session})})
+  .then(r=>r.json()).then(d=>{
+    if(d.error){alert(d.error);updateAdsUI(0);}
+    else{coinCount.innerText=d.coins;updateAdsUI(d.adsLeft??0);}
+  });
+}
+
+function cardImage(u){
+  return `<div class="card"><img src="${u}"><div class="card-controls"><button class="ctrl download" onclick="window.open('${u}')">⬇</button></div></div>`;
+}
+function cardVideo(u){
+  return `<div class="card"><video src="${u}" controls></video><div class="card-controls"><button class="ctrl download" onclick="window.open('${u}')">⬇</button></div></div>`;
 }
 
 async function generate(){
-  const prompt = document.getElementById("prompt").value.trim();
-  if(!prompt){
-    alert("Enter a prompt");
-    return;
-  }
-
-  try{
-    const endpoint =
-      currentTab === "image"
-        ? "/generate-image"
-        : "/generate-video";
-
-    const res = await fetch(API_URL + endpoint,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ session, prompt })
-    });
-
-    const data = await res.json();
-
-    if(data.error){
-      alert(data.error);
-      return;
-    }
-
-    document.getElementById("coinCount").innerText = data.coins;
-
-    if(currentTab === "image"){
-      data.images.forEach(img=>{
-        gallery.innerHTML = cardImage(img) + gallery.innerHTML;
-      });
-    }else{
-      gallery.innerHTML = cardVideo(data.video) + gallery.innerHTML;
-    }
-
-  }catch(e){
-    alert("Server busy, try again");
-  }
+  const p=prompt.value.trim();
+  if(!p){alert("Enter a prompt");return;}
+  const ep=currentTab==="image"?"/generate-image":"/generate-video";
+  const r=await fetch(API_URL+ep,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session,prompt:p})});
+  const d=await r.json();
+  if(d.error){alert(d.error);return;}
+  coinCount.innerText=d.coins;
+  if(currentTab==="image") d.images.forEach(i=>gallery.innerHTML=cardImage(i)+gallery.innerHTML);
+  else gallery.innerHTML=cardVideo(d.video)+gallery.innerHTML;
 }
 
 async function loadGallery(){
-  try{
-    const res = await fetch(API_URL + "/gallery",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ session })
-    });
-
-    const data = await res.json();
-    const gallery = document.getElementById("gallery");
-    gallery.innerHTML = "";
-
-    (data.gallery || []).forEach(item=>{
-      gallery.innerHTML +=
-        item.type === "image"
-          ? cardImage(item.url)
-          : cardVideo(item.url);
-    });
-
-  }catch(e){
-    console.log("Gallery load failed");
-  }
+  const r=await fetch(API_URL+"/gallery",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session})});
+  const d=await r.json();
+  gallery.innerHTML="";
+  (d.gallery||[]).forEach(i=>gallery.innerHTML+=(i.type==="image"?cardImage(i.url):cardVideo(i.url)));
 }
 </script>
+
+</body>
+</html>
