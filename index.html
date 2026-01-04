@@ -1,230 +1,349 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>AI Image Generator</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<title>AI Image & Video Studio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <style>
+/* ===== SAME CSS – NO CHANGE ===== */
+:root{
+  --bg:#0b0b0f;
+  --glass:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.15);
+  --neon:#00ffd5;
+  --purple:#7a5cff;
+  --danger:#ff4d4d;
+}
 *{box-sizing:border-box}
 body{
   margin:0;
-  background:#0b0b0b;
+  font-family:Inter,Arial,Helvetica,sans-serif;
+  background:radial-gradient(circle at top,#111,#000);
   color:#fff;
-  font-family:Arial,Helvetica,sans-serif;
 }
 header{
+  padding:14px 18px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:12px 14px;
-  background:#161616;
+  backdrop-filter:blur(12px);
+  background:var(--glass);
+  border-bottom:1px solid var(--border);
 }
-.header-right{
+.logo{font-weight:700;font-size:18px}
+.coins{
+  padding:6px 14px;
+  border-radius:20px;
+  background:#111;
+  border:1px solid var(--border);
+  color:var(--neon);
+}
+#auth{
+  min-height:100vh;
   display:flex;
   align-items:center;
-  gap:14px;
-  font-size:14px;
+  justify-content:center;
 }
-.badge{
-  background:#222;
-  padding:6px 10px;
-  border-radius:18px;
+.auth-card{
+  width:90%;
+  max-width:380px;
+  padding:26px;
+  border-radius:20px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  text-align:center;
 }
-.container{
+.auth-btn{
+  width:100%;
   padding:14px;
-  max-width:520px;
+  margin-top:12px;
+  border-radius:14px;
+  border:none;
+  cursor:pointer;
+  font-size:15px;
+  font-weight:600;
+}
+.google{background:#fff;color:#000}
+.email{background:#222;color:#fff}
+#app{display:none}
+.container{
+  padding:18px;
+  max-width:900px;
   margin:auto;
 }
+.tabs{display:flex;gap:10px;margin-bottom:16px}
+.tab{
+  flex:1;padding:12px;text-align:center;
+  border-radius:14px;background:#111;
+  border:1px solid var(--border);
+  cursor:pointer;
+}
+.tab.active{
+  background:linear-gradient(135deg,var(--purple),var(--neon));
+  color:#000;
+}
+.panel{
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:16px;
+}
 textarea{
-  width:100%;
-  height:90px;
-  border:none;
+  width:100%;height:90px;
+  background:#0e0e13;color:#fff;
+  border:1px solid var(--border);
   border-radius:14px;
   padding:12px;
-  font-size:16px;
 }
-button{
-  width:100%;
-  margin-top:12px;
-  padding:14px;
-  border:none;
-  border-radius:14px;
-  font-size:16px;
-  font-weight:bold;
-  background:#00e676;
+.generate-btn{
+  margin-top:12px;width:100%;
+  padding:14px;border:none;
+  border-radius:16px;
+  font-weight:700;cursor:pointer;
+  background:linear-gradient(135deg,var(--neon),#4dff9c);
   color:#000;
-  cursor:pointer;
 }
-button.locked{
-  background:#555;
-  color:#aaa;
+.actions{display:flex;gap:10px;margin-top:12px}
+.action{
+  flex:1;padding:12px;
+  border-radius:14px;background:#111;
+  border:1px solid var(--border);
+  cursor:pointer;text-align:center;
 }
-.watch-ads{
-  margin-top:10px;
-  text-align:center;
-  color:#00e676;
-  cursor:pointer;
-  font-size:14px;
-}
-.grid{
-  margin-top:16px;
+.gallery{
+  margin-top:22px;
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:14px;
 }
 .card{
   position:relative;
-  border-radius:14px;
+  border-radius:16px;
   overflow:hidden;
   background:#111;
 }
-.card img{
-  width:100%;
-  display:block;
+.card img,.card video{width:100%;display:block}
+.card-controls{
+  position:absolute;
+  top:6px;
+  right:6px;
+  display:flex;
+  gap:6px;
 }
+.ctrl{
+  width:30px;height:30px;
+  border-radius:8px;border:none;
+  cursor:pointer;font-size:14px;
+}
+.download{background:var(--neon);color:#000}
+.delete{background:var(--danger);color:#fff}
+#adsModal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.85);
+  display:none;align-items:center;justify-content:center;
+}
+.ads-box{
+  width:90%;max-width:360px;
+  background:#111;border-radius:20px;
+  padding:20px;text-align:center;
+}
+.progress{
+  height:8px;background:#222;
+  border-radius:10px;overflow:hidden;margin-top:14px;
+}
+.bar{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--purple),var(--neon));
+}
+footer{text-align:center;opacity:.5;padding:16px;font-size:12px}
 </style>
 </head>
 
 <body>
 
-<header>
-  <div>🤖 AI Image Generator</div>
-  <div class="header-right">
-    <div class="badge">Coins: <span id="coins">---</span></div>
-    <div>📁 Gallery</div>
-    <div>⬇ Install</div>
+<!-- AUTH -->
+<div id="auth">
+  <div class="auth-card">
+    <h2>Welcome to AI Studio</h2>
+    <p>Generate Images & Videos using AI</p>
+    <button class="auth-btn google" onclick="login()">Continue with Google</button>
+    <button class="auth-btn email" onclick="login()">Continue with Email</button>
   </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+<header>
+  <div class="logo">⚡ AI Studio</div>
+  <div class="coins">🪙 <span id="coinCount">--</span></div>
 </header>
 
 <div class="container">
-  <textarea id="prompt" placeholder="Describe your image..."></textarea>
-  <button id="generateBtn" onclick="generate()">⚡ Generate Image</button>
-  <div class="watch-ads" onclick="openAdPopup()">👁️ Watch ads → get coins</div>
-  <div class="grid" id="grid"></div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('image',this)">🖼 Image</div>
+    <div class="tab" onclick="switchTab('video',this)">🎬 Video</div>
+  </div>
+
+  <div class="panel">
+    <textarea id="prompt" placeholder="Describe what you want to generate..."></textarea>
+    <button class="generate-btn" onclick="generate()">Generate</button>
+
+    <div class="actions">
+      <div class="action" onclick="openAds()">👁 Watch Ads (+5)</div>
+      <div class="action">💳 Buy Coins</div>
+    </div>
+  </div>
+
+  <div class="gallery" id="gallery"></div>
+</div>
+
+<footer>© AI Studio • Private Gallery</footer>
+</div>
+
+<!-- ADS -->
+<div id="adsModal">
+  <div class="ads-box">
+    <h3>Watching Ads</h3>
+    <p>3 ads = +5 coins</p>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+  </div>
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+/* ================= CONFIG ================= */
+const API_URL = "https://YOUR-WORKER-URL.workers.dev"; // 👈 CHANGE THIS
 
-  /* ================= CONFIG ================= */
-  const API_URL = "https://ai-image-api.aiimagegen60.workers.dev";
+/* SESSION */
+let session = localStorage.getItem("session");
+if(!session){
+  session = crypto.randomUUID();
+  localStorage.setItem("session", session);
+}
 
-  /* ================= SESSION ================= */
-  function makeSession(){
-    return 'xxxxxxxxyxxx'.replace(/[xy]/g, c => {
-      const r = Math.random()*16|0;
-      return r.toString(16);
-    });
-  }
+let currentTab="image";
 
-  let session = localStorage.getItem("session");
-  if(!session){
-    session = makeSession();
-    localStorage.setItem("session", session);
-  }
+/* LOGIN */
+async function login(){
+  document.getElementById("auth").style.display="none";
+  document.getElementById("app").style.display="block";
 
-  /* ================= STATE ================= */
-  const coinsEl = document.getElementById("coins");
-  const grid = document.getElementById("grid");
-  const generateBtn = document.getElementById("generateBtn");
-  const promptEl = document.getElementById("prompt");
-  const adsBtn = document.querySelector(".watch-ads");
-
-  let images = [];
-
-  /* ================= INIT ================= */
-  fetch(API_URL + "/init", {
+  const res = await fetch(ai-image-api.aiimagegen60.workers.dev + "/init",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({ session })
-  })
-  .then(r=>r.json())
-  .then(d=>{
-    coinsEl.innerText = d.coins;
-    toggleGenerate(d.coins);
   });
+  const data = await res.json();
+  document.getElementById("coinCount").innerText = data.coins;
+}
 
-  /* ================= GENERATE ================= */
-  window.generate = async function(){
-    const prompt = promptEl.value.trim();
-    if(!prompt) return;
+/* TAB */
+function switchTab(t,el){
+  currentTab=t;
+  document.querySelectorAll(".tab").forEach(e=>e.classList.remove("active"));
+  el.classList.add("active");
+}
 
-    generateBtn.innerText = "⏳ Generating...";
-    generateBtn.disabled = true;
+/* GENERATE (BACKEND CONNECTED) */
+async function generate(){
+  const prompt = document.getElementById("prompt").value.trim();
+  if(!prompt) return alert("Enter prompt");
 
-    try {
-      // 1️⃣ Coins cut (worker)
-      const coinRes = await fetch(API_URL + "/generate", {
+  const gallery = document.getElementById("gallery");
+  const coinsEl = document.getElementById("coinCount");
+
+  try{
+    if(currentTab==="image"){
+      const res = await fetch(API_URL + "/generate-image",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body:JSON.stringify({ session, prompt })
       });
+      const data = await res.json();
+      if(data.error) return alert(data.error);
 
-      const coinData = await coinRes.json();
-      if(coinData.error){
-        alert(coinData.error);
-        return;
-      }
+      coinsEl.innerText = data.coins;
 
-      coinsEl.innerText = coinData.coins;
-      toggleGenerate(coinData.coins);
-
-      // 2️⃣ Image from worker (secure, token hidden)
-      const imgUrl =
-        API_URL + "/image?prompt=" + encodeURIComponent(prompt);
-
-      images.unshift({ url: imgUrl, prompt });
-      renderGrid();
-
-    } catch {
-      alert("AI busy. Try again in 30 seconds.");
-    } finally {
-      generateBtn.innerText = "⚡ Generate Image";
-      toggleGenerate(parseInt(coinsEl.innerText));
-    }
-  };
-
-  /* ================= GRID ================= */
-  function renderGrid(){
-    grid.innerHTML = "";
-    images.forEach(img=>{
-      grid.innerHTML += `
+      data.images.forEach(url=>{
+        gallery.innerHTML = `
         <div class="card">
-          <img src="${img.url}" loading="lazy">
-        </div>`;
-    });
+          <div class="card-controls">
+            <button class="ctrl download" onclick="download(this)">⬇</button>
+            <button class="ctrl delete" onclick="removeCard(this)">🗑</button>
+          </div>
+          <img src="${url}">
+        </div>` + gallery.innerHTML;
+      });
+
+    }else{
+      const res = await fetch(API_URL + "/generate-video",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ session, prompt })
+      });
+      const data = await res.json();
+      if(data.error) return alert(data.error);
+
+      coinsEl.innerText = data.coins;
+
+      gallery.innerHTML = `
+      <div class="card">
+        <div class="card-controls">
+          <button class="ctrl download" onclick="download(this)">⬇</button>
+          <button class="ctrl delete" onclick="removeCard(this)">🗑</button>
+        </div>
+        <video src="${data.video}" controls></video>
+      </div>` + gallery.innerHTML;
+    }
+  }catch{
+    alert("Server busy, try again");
   }
+}
 
-  function toggleGenerate(c){
-    generateBtn.disabled = c < 2;
-    generateBtn.classList.toggle("locked", c < 2);
+/* DOWNLOAD */
+function download(btn){
+  const media = btn.closest(".card").querySelector("img,video");
+  const a = document.createElement("a");
+  a.href = media.src;
+  a.download = "ai-media";
+  a.click();
+}
+
+/* DELETE */
+function removeCard(btn){
+  if(confirm("Delete this item?")){
+    btn.closest(".card").remove();
   }
+}
 
-  /* ================= ADS ================= */
-  window.openAdPopup = function(){
-    adsBtn.innerText = "⏳ Watching ad...";
-    adsBtn.style.pointerEvents = "none";
+/* ADS */
+function openAds(){
+  const modal=document.getElementById("adsModal");
+  const bar=document.getElementById("bar");
+  modal.style.display="flex";
+  let p=0;
+  const i=setInterval(()=>{
+    p++;
+    bar.style.width=p+"%";
+    if(p>=100){
+      clearInterval(i);
+      modal.style.display="none";
 
-    setTimeout(()=>{
-      fetch(API_URL + "/watch-ad", {
+      fetch(API_URL + "/watch-ad",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body:JSON.stringify({ session })
       })
       .then(r=>r.json())
       .then(d=>{
-        coinsEl.innerText = d.coins;
-        toggleGenerate(d.coins);
-      })
-      .finally(()=>{
-        adsBtn.innerText = "👁️ Watch ads → get coins";
-        adsBtn.style.pointerEvents = "auto";
+        document.getElementById("coinCount").innerText=d.coins;
       });
-    }, 15000);
-  };
 
-});
+      bar.style.width="0%";
+    }
+  },150);
+}
 </script>
 
 </body>
