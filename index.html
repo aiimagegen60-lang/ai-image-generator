@@ -257,13 +257,24 @@ function openAds(){
 }
 
 function playAd(){
-  if(adsPlayed>=2){ rewardAd(); return; }
+  if(adsPlayed >= 2){
+    rewardAd();
+    return;
+  }
+
   adsPlayed++;
-  const s=document.createElement("script");
-  s.src="//www.topcreativeformat.com/ <meta name="monetag" content="32dd2ca78e9513bc622e37f5d6cbffa1">
-  s.async=true;
+
+  const adLinks = [
+    "https://www.effectivegatecpm.com/mfx5d8ns03?key=51b85528597dfa541763957efb4c2f43", //https://www.effectivegatecpm.com/mfx5d8ns03?key=51b85528597dfa541763957efb4c2f43
+    "https://go.monetag.com/visit/?id=abcd1234" // <meta name="monetag" content="32dd2ca78e9513bc622e37f5d6cbffa1">
+  ];
+
+  const s = document.createElement("script");
+  s.src = adLinks[Math.floor(Math.random() * adLinks.length)];
+  s.async = true;
   document.body.appendChild(s);
-  setTimeout(playAd,12000);
+
+  setTimeout(playAd, 12000);
 }
 
 function rewardAd(){
