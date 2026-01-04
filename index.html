@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <style>
-/* ===== SAME CSS – NO CHANGE ===== */
 :root{
   --bg:#0b0b0f;
   --glass:rgba(255,255,255,.08);
@@ -162,7 +161,6 @@ footer{text-align:center;opacity:.5;padding:16px;font-size:12px}
 
 <body>
 
-<!-- AUTH -->
 <div id="auth">
   <div class="auth-card">
     <h2>Welcome to AI Studio</h2>
@@ -172,11 +170,13 @@ footer{text-align:center;opacity:.5;padding:16px;font-size:12px}
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
 <header>
   <div class="logo">⚡ AI Studio</div>
-  <div class="coins">🪙 <span id="coinCount">--</span></div>
+  <div style="display:flex;gap:10px">
+    <div class="coins">🪙 <span id="coinCount">--</span></div>
+    <div class="coins">🎯 Ads left: <span id="adsLeft">--</span>/5</div>
+  </div>
 </header>
 
 <div class="container">
@@ -191,7 +191,7 @@ footer{text-align:center;opacity:.5;padding:16px;font-size:12px}
     <button class="generate-btn" onclick="generate()">Generate</button>
 
     <div class="actions">
-      <div class="action" onclick="openAds()">👁 Watch Ads (+5)</div>
+      <div class="action" id="adsBtn" onclick="openAds()">👁 Watch Ads</div>
       <div class="action">💳 Buy Coins</div>
     </div>
   </div>
@@ -202,17 +202,15 @@ footer{text-align:center;opacity:.5;padding:16px;font-size:12px}
 <footer>© AI Studio • Private Gallery</footer>
 </div>
 
-<!-- ADS -->
 <div id="adsModal">
   <div class="ads-box">
     <h3>Watching Ads</h3>
-    <p>3 ads = +5 coins</p>
+    <p>1 click = 2 ads = +1 coin<br>Max 5 clicks / day</p>
     <div class="progress"><div class="bar" id="bar"></div></div>
   </div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
 const API_URL = "https://ai-image-api.aiimagegen60.workers.dev";
 
 /* SESSION */
@@ -222,7 +220,8 @@ if(!session){
   localStorage.setItem("session", session);
 }
 
-let currentTab="image";
+let currentTab = "image";
+let adsPlayed = 0;
 
 /* LOGIN */
 async function login(){
@@ -235,162 +234,69 @@ async function login(){
     body:JSON.stringify({ session })
   });
   const data = await res.json();
+
   document.getElementById("coinCount").innerText = data.coins;
-
-  loadGallery(); // ✅ gallery load
+  updateAdsUI(data.adsLeft ?? 5);
+  loadGallery();
 }
 
-/* LOAD GALLERY */
-async function loadGallery(){
-  const gallery = document.getElementById("gallery");
-  gallery.innerHTML = "";
+/* ADS UI */
+function updateAdsUI(left){
+  document.getElementById("adsLeft").innerText = left;
+  const btn = document.getElementById("adsBtn");
 
-  try{
-    const res = await fetch(API_URL + "/gallery",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ session })
-    });
-    const data = await res.json();
-
-    (data.gallery || []).forEach(item=>{
-      if(item.type === "image"){
-        gallery.innerHTML += cardImage(item.url);
-      }else{
-        gallery.innerHTML += cardVideo(item.url);
-      }
-    });
-  }catch(e){
-    console.log("Gallery load failed");
+  if(left <= 0){
+    btn.innerText = "⛔ Daily Ads Quota Ended";
+    btn.style.pointerEvents="none";
+    btn.style.opacity="0.5";
+  }else{
+    btn.innerText = "👁 Watch Ads";
+    btn.style.pointerEvents="auto";
+    btn.style.opacity="1";
   }
 }
 
-/* TAB */
-function switchTab(t,el){
-  currentTab=t;
-  document.querySelectorAll(".tab").forEach(e=>e.classList.remove("active"));
-  el.classList.add("active");
-}
-
-/* GENERATE */
-async function generate(){
-  const prompt = document.getElementById("prompt").value.trim();
-  if(!prompt) return alert("Enter prompt");
-
-  try{
-    if(currentTab==="image"){
-      const res = await fetch(API_URL + "/generate-image",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ session, prompt })
-      });
-      const data = await res.json();
-      if(data.error) return alert(data.error);
-
-      document.getElementById("coinCount").innerText = data.coins;
-      data.images.forEach(url=>{
-        document.getElementById("gallery").innerHTML =
-          cardImage(url) + document.getElementById("gallery").innerHTML;
-      });
-
-    }else{
-      const res = await fetch(API_URL + "/generate-video",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ session, prompt })
-      });
-      const data = await res.json();
-      if(data.error) return alert(data.error);
-
-      document.getElementById("coinCount").innerText = data.coins;
-      document.getElementById("gallery").innerHTML =
-        cardVideo(data.video) + document.getElementById("gallery").innerHTML;
-    }
-  }catch{
-    alert("Server busy, try again");
-  }
-}
-
-/* CARD TEMPLATES */
-function cardImage(url){
-  return `
-  <div class="card" data-url="${url}">
-    <div class="card-controls">
-      <button class="ctrl download" onclick="download(this)">⬇</button>
-      <button class="ctrl delete" onclick="removeCard(this)">🗑</button>
-    </div>
-    <img src="${url}">
-  </div>`;
-}
-
-function cardVideo(url){
-  return `
-  <div class="card" data-url="${url}">
-    <div class="card-controls">
-      <button class="ctrl download" onclick="download(this)">⬇</button>
-      <button class="ctrl delete" onclick="removeCard(this)">🗑</button>
-    </div>
-    <video src="${url}" controls></video>
-  </div>`;
-}
-
-/* DOWNLOAD */
-function download(btn){
-  const media = btn.closest(".card").querySelector("img,video");
-  const a = document.createElement("a");
-  a.href = media.src;
-  a.download = "ai-media";
-  a.click();
-}
-
-/* DELETE */
-async function removeCard(btn){
-  if(!confirm("Delete this item?")) return;
-
-  const card = btn.closest(".card");
-  const url = card.dataset.url;
-
-  // UI remove (instant)
-  card.remove();
-
-  // Backend sync
-  try{
-    await fetch(API_URL + "/delete",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ session, url })
-    });
-  }catch{
-    console.log("Backend delete failed");
-  }
-}
-
-/* ADS */
+/* ADS FLOW */
 function openAds(){
-  const modal=document.getElementById("adsModal");
-  const bar=document.getElementById("bar");
-  modal.style.display="flex";
-  let p=0;
-  const i=setInterval(()=>{
-    p++;
-    bar.style.width=p+"%";
-    if(p>=100){
-      clearInterval(i);
-      modal.style.display="none";
+  adsPlayed = 0;
+  document.getElementById("adsModal").style.display="flex";
+  playAd();
+}
 
-      fetch(API_URL + "/watch-ad",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ session })
-      })
-      .then(r=>r.json())
-      .then(d=>{
-        document.getElementById("coinCount").innerText=d.coins;
-      });
+function playAd(){
+  if(adsPlayed >= 2){
+    rewardAd();
+    return;
+  }
 
-      bar.style.width="0%";
+  adsPlayed++;
+
+  const s = document.createElement("script");
+  s.src = "//www.topcreativeformat.com/https://www.effectivegatecpm.com/mfx5d8ns03?key=51b85528597dfa541763957efb4c2f43/invoke.js";
+  s.async = true;
+  document.body.appendChild(s);
+
+  setTimeout(playAd, 12000);
+}
+
+function rewardAd(){
+  document.getElementById("adsModal").style.display="none";
+
+  fetch(API_URL + "/watch-ad",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ session })
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.error){
+      updateAdsUI(0);
+      alert(d.error);
+    }else{
+      document.getElementById("coinCount").innerText = d.coins;
+      updateAdsUI(d.adsLeft ?? 0);
     }
-  },150);
+  });
 }
 </script>
 
